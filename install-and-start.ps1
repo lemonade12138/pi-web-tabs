@@ -1,4 +1,4 @@
-# Pi Web 标签页版 · 一键安装+启动
+﻿# Pi Web 标签页版 · 一键安装+启动
 # 第一次运行会自动下载依赖（需要几分钟+联网），之后秒开
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -23,7 +23,18 @@ if (-not (Test-Path "$root\node_modules")) {
     }
 }
 
-# 3. 在桌面创建 Pi Web Tabs 快捷方式（已存在就跳过）
+# 3. 首次运行：构建正式版（仅一次）
+if (-not (Test-Path "$root\.next\BUILD_ID")) {
+    Write-Host "正在构建正式版（仅此一次，几分钟）……" -ForegroundColor Yellow
+    npx next build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "构建失败，多半是网络或 Node 版本问题，重新双击再试。" -ForegroundColor Red
+        Read-Host "按回车关闭"
+        exit 1
+    }
+}
+
+# 4. 在桌面创建 Pi Web Tabs 快捷方式（已存在就跳过）
 $desktop = [Environment]::GetFolderPath("Desktop")
 $lnkPath = Join-Path $desktop "Pi Web Tabs.lnk"
 $icoFile = Join-Path $root "app\pi-tabs.ico"
@@ -40,11 +51,11 @@ if (-not (Test-Path $lnkPath) -and (Test-Path $icoFile) -and (Test-Path $vbsFile
     Write-Host "已在桌面创建 Pi Web Tabs 快捷方式" -ForegroundColor Green
 }
 
-# 4. 启动（已在跑就直接开浏览器）
+# 5. 启动（正式模式，已在跑就直接开浏览器）
 $port = 30142
 $listening = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
 if (-not $listening) {
-    Start-Process -WindowStyle Hidden powershell -ArgumentList '-NoProfile', '-Command', "Set-Location '$root'; npx next dev -H 127.0.0.1 -p $port"
+    Start-Process -WindowStyle Hidden powershell -ArgumentList '-NoProfile', '-Command', "Set-Location '$root'; npx next start -H 127.0.0.1 -p $port"
     for ($i = 0; $i -lt 60; $i++) {
         Start-Sleep -Milliseconds 500
         if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { break }
