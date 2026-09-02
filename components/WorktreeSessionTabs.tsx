@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { memo, useState, useRef, useCallback, useEffect } from "react";
 import type { SessionInfo } from "@/lib/types";
 import { skillExpansionToCommand } from "@/lib/slash-display";
 import { useI18n } from "@/hooks/useI18n";
@@ -67,7 +67,7 @@ function getTitle(session: SessionInfo): string {
   return session.name?.trim() || collapsed.slice(0, 50) || "新会话";
 }
 
-export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onCreate, onDelete, onRename, onReorder, runningSessionIds, attentionSessionIds }: Props) {
+function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCreate, onDelete, onRename, onReorder, runningSessionIds, attentionSessionIds }: Props) {
   const { t } = useI18n();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -490,3 +490,6 @@ export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onC
     </div>
   );
 }
+
+// 免打扰外套：props 不变时跳过重算，避免外壳高频渲染（如流式输出）连带标签条空转
+export const WorktreeSessionTabs = memo(WorktreeSessionTabsImpl);

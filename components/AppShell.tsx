@@ -1000,6 +1000,10 @@ export function AppShell() {
     closeTab(sessionId);
   }, [closeTab]);
 
+  const handleTabSelect = useCallback((session: SessionInfo) => {
+    handleSelectSession(session);
+  }, [handleSelectSession]);
+
   const handleTabReorder = useCallback((ids: string[]) => {
     setOpenTabIds((prev) => {
       const next = [...ids, ...(prev ?? []).filter((id) => !ids.includes(id))].slice(0, 50);
@@ -2402,7 +2406,7 @@ export function AppShell() {
           <WorktreeSessionTabs
             sessions={recentSessions}
             selectedSessionId={selectedSession?.id ?? null}
-            onSelect={(s) => handleSelectSession(s)}
+            onSelect={handleTabSelect}
             onCreate={handleTabCreate}
             onDelete={handleTabClose}
             onRename={handleTabRename}
