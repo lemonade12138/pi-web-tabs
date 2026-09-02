@@ -61,6 +61,12 @@ if (-not $listening) {
         if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { break }
     }
 }
+# 预热：把主页和关键接口先拉一遍，把磁盘/杀毒的“第一次”消耗在安装阶段，用户首次打开即秒开
+$appUrl = "http://127.0.0.1:$port"
+foreach ($p in @("/", "/api/home", "/api/sessions", "/api/agent/running")) {
+    try { Invoke-WebRequest -UseBasicParsing -Uri "$appUrl$p" -TimeoutSec 120 | Out-Null } catch {}
+}
+
 # 打开应用窗口：Edge 应用模式优先，其次 Chrome，最后默认浏览器
 $appUrl = "http://127.0.0.1:$port"
 $edge = @("C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", "C:\Program Files\Microsoft\Edge\Application\msedge.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
