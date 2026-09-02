@@ -73,7 +73,9 @@ export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onC
   const [editValue, setEditValue] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dragDx, setDragDx] = useState(0);
+  const [shifts, setShifts] = useState<Record<string, number>>({});
+  const justDraggedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -111,6 +113,82 @@ export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onC
     const el = scrollRef.current.querySelector(`[data-tab-id="${selectedSessionId}"]`) as HTMLElement | null;
     el?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
   }, [selectedSessionId]);
+
+  // Pointer-based drag: the pressed tab follows the cursor; neighbors slide aside smoothly
+  const handleTabPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, session: SessionInfo, index: number) => {
+    if (editingId !== null || confirmDeleteId !== null || session.transient || e.button !== 0) return;
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+    const els = Array.from(scrollEl.querySelectorAll<HTMLElement>("[data-tab-id]"));
+    const ids = els.map((el) => el.dataset.tabId ?? "");
+    const fromIndex = ids.indexOf(session.id);
+    if (fromIndex === -1) return;
+    const rects = els.map((el) => ({ left: el.offsetLeft, width: el.offsetWidth }));
+    const gap = rects.length > 1 ? Math.max(0, rects[1].left - rects[0].left - rects[0].width) : 6;
+    const draggedWidth = rects[fromIndex].width;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let active = false;
+    let toIndex = fromIndex;
+
+    const applyShifts = () => {
+      const next: Record<string, number> = {};
+      const step = draggedWidth + gap;
+      if (toIndex > fromIndex) {
+        for (let i = fromIndex + 1; i <= toIndex && i < ids.length; i++) next[ids[i]] = -step;
+      } else if (toIndex < fromIndex) {
+        for (let i = toIndex; i < fromIndex; i++) next[ids[i]] = step;
+      }
+      setShifts(next);
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!active) {
+        if (Math.abs(ev.clientX - startX) < 6 && Math.abs(ev.clientY - startY) < 6) return;
+        active = true;
+        justDraggedRef.current = true;
+        setDragId(session.id);
+        setDragDx(0);
+        document.body.style.userSelect = "none";
+      }
+      setDragDx(ev.clientX - startX);
+      let count = 0;
+      for (let i = 0; i < rects.length; i++) {
+        if (i === fromIndex) continue;
+        if (ev.clientX > rects[i].left + rects[i].width / 2) count++;
+      }
+      const target = Math.max(0, Math.min(ids.length - 1, count));
+      if (target !== toIndex) {
+        toIndex = target;
+        applyShifts();
+      }
+    };
+
+    const finish = (commit: boolean) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      document.body.style.userSelect = "";
+      els.forEach((el) => { el.style.transform = ""; });
+      if (active && commit) {
+        const next = ids.filter((id) => id !== session.id);
+        const insertAt = Math.max(0, Math.min(next.length, toIndex));
+        next.splice(insertAt, 0, session.id);
+        if (insertAt !== fromIndex) onReorder(next);
+      }
+      // Release after the click event so a real drag doesn't trigger selection
+      setTimeout(() => {
+        setDragId(null);
+        setShifts({});
+        justDraggedRef.current = false;
+      }, 0);
+    };
+    const onUp = () => finish(true);
+    const onCancel = () => finish(false);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+  }, [editingId, confirmDeleteId, onReorder]);
 
   // Order is maintained by the caller (most recently opened tab first)
   const sorted = sessions;
@@ -176,7 +254,7 @@ export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onC
           scrollbarWidth: "thin",
         }}
       >
-        {sorted.map((session) => {
+        {sorted.map((session, index) => {
           const isSelected = session.id === selectedSessionId;
           const isEditing = editingId === session.id;
           const isConfirming = confirmDeleteId === session.id;
@@ -189,6 +267,7 @@ export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onC
               data-tab-id={session.id}
               tabIndex={isEditing ? -1 : 0}
               onClick={() => {
+                if (justDraggedRef.current) return;
                 if (isEditing || isConfirming) return;
                 onSelect(session);
               }}
@@ -199,39 +278,7 @@ export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onC
                   startEdit(session);
                 }
               }}
-              draggable={!isEditing && !session.transient}
-              onDragStart={(e) => {
-                setDragId(session.id);
-                e.dataTransfer.effectAllowed = "move";
-                try { e.dataTransfer.setData("text/plain", session.id); } catch {}
-              }}
-              onDragOver={(e) => {
-                if (!dragId || dragId === session.id) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                if (dragOverId !== session.id) setDragOverId(session.id);
-              }}
-              onDragLeave={() => {
-                if (dragOverId === session.id) setDragOverId(null);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragId && dragId !== session.id) {
-                  const ids = sessions.filter((s) => !s.transient).map((s) => s.id);
-                  const from = ids.indexOf(dragId);
-                  const to = ids.indexOf(session.id);
-                  if (from !== -1 && to !== -1) {
-                    ids.splice(to, 0, ids.splice(from, 1)[0]);
-                    onReorder(ids);
-                  }
-                }
-                setDragId(null);
-                setDragOverId(null);
-              }}
-              onDragEnd={() => {
-                setDragId(null);
-                setDragOverId(null);
-              }}
+              onPointerDown={(e) => handleTabPointerDown(e, session, index)}
               title={title}
               style={{
                 display: "flex",
@@ -249,8 +296,16 @@ export function WorktreeSessionTabs({ sessions, selectedSessionId, onSelect, onC
                 minWidth: 80,
                 fontSize: 12,
                 whiteSpace: "nowrap",
-                opacity: dragId === session.id ? 0.4 : session.transient ? 0.7 : 1,
-                boxShadow: dragOverId === session.id && dragId && dragId !== session.id ? "inset 2px 0 0 var(--accent)" : undefined,
+                opacity: session.transient ? 0.7 : 1,
+                position: "relative",
+                transition: dragId === session.id ? "none" : "transform 180ms ease",
+                transform: dragId === session.id
+                  ? `translateX(${dragDx}px) scale(1.03)`
+                  : shifts[session.id]
+                    ? `translateX(${shifts[session.id]}px)`
+                    : undefined,
+                zIndex: dragId === session.id ? 20 : undefined,
+                boxShadow: dragId === session.id ? "0 4px 14px rgba(0,0,0,0.3)" : undefined,
               }}
             >
               {isEditing ? (

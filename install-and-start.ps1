@@ -50,6 +50,16 @@ if (-not $listening) {
         if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { break }
     }
 }
-Start-Process "http://127.0.0.1:$port"
-Write-Host "已打开浏览器。没弹出来的话，手动访问 http://127.0.0.1:$port"
+# 打开应用窗口：Edge 应用模式优先，其次 Chrome，最后默认浏览器
+$appUrl = "http://127.0.0.1:$port"
+$edge = @("C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", "C:\Program Files\Microsoft\Edge\Application\msedge.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+$chrome = @("C:\Program Files\Google\Chrome\Application\chrome.exe", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($edge) {
+    Start-Process $edge -ArgumentList "--app=$appUrl"
+} elseif ($chrome) {
+    Start-Process $chrome -ArgumentList "--app=$appUrl"
+} else {
+    Start-Process $appUrl
+}
+Write-Host "已打开应用窗口。没弹出来的话，手动访问 $appUrl"
 Start-Sleep -Seconds 3
