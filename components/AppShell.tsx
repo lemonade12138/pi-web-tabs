@@ -175,14 +175,16 @@ export function AppShell() {
   useEffect(() => {
     const previous = previousRunningRef.current;
     previousRunningRef.current = runningSessionIds;
-    const finished = [...previous].filter((id) => !runningSessionIds.has(id));
+    // 正在观看的会话完成不算未读，不点亮小圆点（与官方侧边栏规则一致）
+    const selectedId = selectedSession?.id ?? null;
+    const finished = [...previous].filter((id) => !runningSessionIds.has(id) && id !== selectedId);
     if (finished.length === 0) return;
     setAttentionSessionIds((prev) => {
       const next = new Set(prev);
       finished.forEach((id) => next.add(id));
       return next;
     });
-  }, [runningSessionIds]);
+  }, [runningSessionIds, selectedSession]);
   // The temporary id distinguishes consecutive fresh composers in one cwd.
   const [newSessionCwd, setNewSessionCwd] = useState<string | null>(null);
   const [newSessionDraftId, setNewSessionDraftId] = useState("initial");
@@ -1874,19 +1876,6 @@ export function AppShell() {
           box-shadow: 0 10px 28px rgba(0,0,0,0.10);
         }
       }
-      @keyframes session-info-light-wash {
-        0% {
-          opacity: 0;
-          transform: translateX(-110%) skewX(-16deg);
-        }
-        24% {
-          opacity: 0.42;
-        }
-        100% {
-          opacity: 0;
-          transform: translateX(115%) skewX(-16deg);
-        }
-      }
       .session-info-popover {
         position: relative;
         overflow: hidden;
@@ -1894,20 +1883,8 @@ export function AppShell() {
         animation: session-info-pop 360ms ease-out both;
         will-change: transform, opacity, filter, background, box-shadow;
       }
-      .session-info-popover::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        width: 44%;
-        pointer-events: none;
-        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 24%, transparent), transparent);
-        animation: session-info-light-wash 620ms ease-out both;
-      }
       @media (prefers-reduced-motion: reduce) {
-        .session-info-popover,
-        .session-info-popover::after {
+        .session-info-popover {
           animation: none;
         }
       }

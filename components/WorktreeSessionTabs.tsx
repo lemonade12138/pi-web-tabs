@@ -265,6 +265,7 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
             <div
               key={session.id}
               data-tab-id={session.id}
+              className={attentionSessionIds.has(session.id) ? "session-tab-attention" : undefined}
               tabIndex={isEditing ? -1 : 0}
               onClick={() => {
                 if (justDraggedRef.current) return;

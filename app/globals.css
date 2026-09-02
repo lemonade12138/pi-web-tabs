@@ -1422,8 +1422,19 @@ span.token.table {
   }
 }
 
-@keyframes pi-tab-spin {
-  to {
-    transform: rotate(360deg);
+/* 标签条：待查看会话的呼吸光提醒（替代单一小蓝点，更醒目） */
+@keyframes session-tab-attention-glow {
+  0%, 100% {
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+    box-shadow: inset 0 0 5px 0 color-mix(in srgb, var(--accent) 12%, transparent),
+      0 0 3px 0 color-mix(in srgb, var(--accent) 18%, transparent);
   }
+  50% {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 9px 0 color-mix(in srgb, var(--accent) 32%, transparent),
+      0 0 10px 2px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+}
+.session-tab-attention {
+  animation: session-tab-attention-glow 1.6s ease-in-out infinite;
 }
