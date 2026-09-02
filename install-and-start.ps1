@@ -23,7 +23,24 @@ if (-not (Test-Path "$root\node_modules")) {
     }
 }
 
-# 3. 启动（已在跑就直接开浏览器）
+# 3. 在桌面创建 Pi Web Tabs 快捷方式（已存在就跳过）
+$desktop = [Environment]::GetFolderPath("Desktop")
+$lnkPath = Join-Path $desktop "Pi Web Tabs.lnk"
+$icoFile = Join-Path $root "app\pi-tabs.ico"
+$vbsFile = Join-Path $root "launch-hidden.vbs"
+if (-not (Test-Path $lnkPath) -and (Test-Path $icoFile) -and (Test-Path $vbsFile)) {
+    $sh = New-Object -ComObject WScript.Shell
+    $lnk = $sh.CreateShortcut($lnkPath)
+    $lnk.TargetPath = "C:\Windows\System32\wscript.exe"
+    $lnk.Arguments = "`"$vbsFile`""
+    $lnk.WorkingDirectory = $root
+    $lnk.IconLocation = "$icoFile,0"
+    $lnk.Description = "Pi Web Tabs"
+    $lnk.Save()
+    Write-Host "已在桌面创建 Pi Web Tabs 快捷方式" -ForegroundColor Green
+}
+
+# 4. 启动（已在跑就直接开浏览器）
 $port = 30142
 $listening = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
 if (-not $listening) {
