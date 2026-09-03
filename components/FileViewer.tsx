@@ -239,6 +239,24 @@ function DownloadLink({ filePath, sourceSessionId }: { filePath: string; sourceS
   );
 }
 
+function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      onClick={onRefresh}
+      title={t("i18n.refreshFile")}
+      aria-label={t("i18n.refreshFile")}
+      className="file-viewer-icon-button"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+        <polyline points="21 3 21 9 15 9" />
+      </svg>
+    </button>
+  );
+}
+
 type DiffLine = {
   type: "unchanged" | "removed" | "added";
   text: string;
@@ -545,6 +563,7 @@ function ImageViewer({ filePath, cwd, sourceSessionId, watchEnabled = true }: Pr
           />
           {watching ? "live" : "static"}
         </span>
+        <RefreshButton onRefresh={() => setBust((v) => v + 1)} />
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
       </div>
       <div
@@ -715,6 +734,7 @@ function AudioViewer({ filePath, cwd, sourceSessionId, watchEnabled = true }: Pr
           />
           {watching ? "live" : "static"}
         </span>
+        <RefreshButton onRefresh={() => setBust((v) => v + 1)} />
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
       </div>
       <div
@@ -883,6 +903,7 @@ function DocumentViewer({ filePath, cwd, sourceSessionId, watchEnabled = true }:
         </span>
         <span style={{ marginLeft: "auto" }}>{ext === "docx" ? "docx preview" : "pdf"}</span>
         {size != null && <span>{formatSize(size)}</span>}
+        <RefreshButton onRefresh={() => setBust((v) => v + 1)} />
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
         <span
           title={watching ? t("i18n.liveSync") : t("i18n.notWatching")}
@@ -1414,6 +1435,7 @@ function TextFileViewer({
             )}
           </div>
 
+          {!isDeletedDiff && <RefreshButton onRefresh={() => { void fetchContent(filePath); void fetchGitDiff(filePath); }} />}
           {!isDeletedDiff && <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />}
         </div>
       </div>

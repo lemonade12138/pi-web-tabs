@@ -420,6 +420,7 @@ export const enLocale: LocalePlugin = {
     "i18n.preview": "Preview",
     "i18n.diff": "Diff",
     "i18n.downloadFile": "Download file",
+    "i18n.refreshFile": "Refresh content",
     "i18n.liveSync": "Live sync active",
     "i18n.notWatching": "Not watching",
     "i18n.fileViewMode": "File view mode",
