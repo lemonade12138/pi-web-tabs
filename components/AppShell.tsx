@@ -1881,18 +1881,33 @@ export function AppShell() {
         aria-label={rightPanelOpen ? translate("files.hidePanel") : translate("files.showPanel")}
         data-mobile-toolbar-file={mobile ? "true" : undefined}
         style={{
-          position: mobile ? "relative" : "absolute",
-          right: mobile ? undefined : (rightPanelOpen ? `${rightPanelResizer.width}px` : "126px"),
-          top: mobile ? undefined : 0,
-          height: mobile ? TOP_BAR_ICON_BUTTON_SIZE : "100%",
-          transition: mobile ? undefined : "right 0.2s ease",
-          marginLeft: mobile && !sessionStats && !contextUsage ? "auto" : 0,
+          // 桌面壳：固定钉在标签栏行最右端（窗口按钮正下方），稳定不移位；浏览器：保持原位
+          ...(isTauriShell
+            ? {
+                position: "fixed" as const,
+                right: 6,
+                top: "calc(36px + 6px)",
+                height: 40,
+                width: 40,
+                zIndex: 9999,
+                background: rightPanelOpen ? "var(--bg-selected)" : "var(--bg-panel)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+              }
+            : {
+                position: mobile ? "relative" : "absolute",
+                right: mobile ? undefined : (rightPanelOpen ? `${rightPanelResizer.width}px` : "126px"),
+                top: mobile ? undefined : 0,
+                height: mobile ? TOP_BAR_ICON_BUTTON_SIZE : "100%",
+                transition: mobile ? undefined : "right 0.2s ease",
+                marginLeft: mobile && !sessionStats && !contextUsage ? "auto" : 0,
+                background: rightPanelOpen ? "var(--bg-selected)" : "none",
+                border: "none", borderLeft: "1px solid var(--border)",
+              }),
           display: "flex", alignItems: "center", justifyContent: "center",
-          width: TOP_BAR_ICON_BUTTON_SIZE, padding: 0,
+          width: isTauriShell ? 40 : TOP_BAR_ICON_BUTTON_SIZE, padding: 0,
           visibility: covered ? "hidden" : "visible",
           pointerEvents: covered ? "none" : "auto",
-          background: rightPanelOpen ? "var(--bg-selected)" : "none",
-          border: "none", borderLeft: "1px solid var(--border)",
           color: rightPanelOpen ? "var(--text)" : "var(--text-muted)",
           cursor: "pointer", flexShrink: 0,
         }}
