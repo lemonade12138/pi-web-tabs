@@ -534,7 +534,7 @@ export function AppShell() {
     document.documentElement.classList.toggle("tauri-shell", injected);
     if (!injected) return; // 浏览器：用 Firefox/Edge 自带的 Ctrl+滚轮缩放，坐标天然正确
     const apply = (next: number) => {
-      const z = Math.min(3, Math.max(0.5, next));
+      const z = Math.min(5, Math.max(0.5, next));
       try { window.localStorage.setItem("pi-web:app-zoom", String(z)); } catch {}
       try {
         const tauri = (window as unknown as { __TAURI__: { webview: { getCurrentWebview: () => { setZoom: (f: number) => Promise<void> } } } }).__TAURI__;
@@ -2124,45 +2124,6 @@ export function AppShell() {
             </>
           )}
           {!isMobile && !isNarrowMobile && renderMainFileToggle(false)}
-          {isTauriShell && (
-            <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, display: "flex", alignItems: "stretch", height: "100%", zIndex: 30 }}>
-              <button
-                type="button"
-                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { minimize: () => void } } } }).__TAURI__.window.getCurrentWindow().minimize(); }}
-                title="最小化"
-                aria-label="最小化"
-                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
-             >
-                <svg width="12" height="12" viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.2" /></svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { toggleMaximize: () => void } } } }).__TAURI__.window.getCurrentWindow().toggleMaximize(); }}
-                title="最大化/还原"
-                aria-label="最大化/还原"
-                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
-              >
-                <svg width="11" height="11" viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { close: () => void } } } }).__TAURI__.window.getCurrentWindow().close(); }}
-                title="关闭"
-                aria-label="关闭"
-                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderTopRightRadius: 12 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#e81123"; e.currentTarget.style.color = "#ffffff"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
-              >
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-                  <line x1="2.5" y1="2.5" x2="9.5" y2="9.5" /><line x1="9.5" y1="2.5" x2="2.5" y2="9.5" />
-                </svg>
-              </button>
-            </div>
-          )}
           {isMobile && sessionHasBranches && (
             <BranchNavigator
               tree={branchTree}
@@ -2589,6 +2550,7 @@ export function AppShell() {
           flexShrink: 0,
           height: "calc(36px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
+          paddingRight: isTauriShell ? "126px" : undefined,
           background: "var(--bg-panel)",
           borderBottom: "1px solid var(--border)",
         }}>
@@ -2600,27 +2562,7 @@ export function AppShell() {
               onCloseTab={handleCloseFileTab}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setRightPanelOpen(false)}
-            aria-controls="file-panel"
-            aria-expanded={rightPanelOpen}
-            title={translate("files.hidePanel")}
-            aria-label={translate("files.hidePanel")}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: TOP_BAR_ICON_BUTTON_SIZE, height: TOP_BAR_ICON_BUTTON_SIZE, padding: 0,
-              background: "var(--bg-selected)", border: "none", borderLeft: "1px solid var(--border)",
-              color: "var(--text)", cursor: "pointer", flexShrink: 0, transition: "color 0.12s",
-            }}
-            onMouseEnter={(event) => { event.currentTarget.style.color = "var(--accent)"; }}
-            onMouseLeave={(event) => { event.currentTarget.style.color = "var(--text)"; }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="15" y1="3" x2="15" y2="21" />
-            </svg>
-          </button>
-        </div>
+                  </div>
 
         {/* Only the active viewer is mounted. Lightweight per-tab state is restored on activation. */}
         <div style={{ flex: 1, overflow: "hidden", paddingBottom: "env(safe-area-inset-bottom)" }}>
@@ -2654,6 +2596,45 @@ export function AppShell() {
           )}
         </div>
       </div>
+      {isTauriShell && (
+            <div style={{ position: "fixed", right: "6px", top: "6px", display: "flex", alignItems: "stretch", height: "36px", zIndex: 300 }}>
+              <button
+                type="button"
+                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { minimize: () => void } } } }).__TAURI__.window.getCurrentWindow().minimize(); }}
+                title="最小化"
+                aria-label="最小化"
+                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+             >
+                <svg width="12" height="12" viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.2" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { toggleMaximize: () => void } } } }).__TAURI__.window.getCurrentWindow().toggleMaximize(); }}
+                title="最大化/还原"
+                aria-label="最大化/还原"
+                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { close: () => void } } } }).__TAURI__.window.getCurrentWindow().close(); }}
+                title="关闭"
+                aria-label="关闭"
+                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderTopRightRadius: 12 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#e81123"; e.currentTarget.style.color = "#ffffff"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+                  <line x1="2.5" y1="2.5" x2="9.5" y2="9.5" /><line x1="9.5" y1="2.5" x2="2.5" y2="9.5" />
+                </svg>
+              </button>
+            </div>
+          )}
     </div>
     {settingsSection && (
       <SettingsPanel
