@@ -20,6 +20,7 @@ import {
 } from "@/lib/image-attachments";
 import {
   buildEntriesFromFiles, buildAtInsertText, extractAtQuery, filterFileEntries,
+  buildFileAtMentionsText, toExternalMentionPath,
   type AtQueryMatch, type FileIndexEntry,
 } from "@/lib/file-fuzzy";
 import { FolderIcon, getFileIcon } from "./FileIcons";
@@ -85,6 +86,7 @@ export interface ChatInputHandle {
   replaceMessage: (message: UserMessage) => void;
   prependText: (text: string) => void;
   addImages: (files: File[]) => void;
+  addPendingFiles: (paths: string[]) => void;
   rekeyDraft: (previousKey: string, nextKey: string) => void;
   restoreSubmission: (text: string, images?: ChatDraftImage[], targetDraftKey?: string) => void;
 }
@@ -678,6 +680,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     addImages(files: File[]) {
       processImageFiles(files);
     },
+    addPendingFiles(paths: string[]) {
+      addPendingFiles(paths);
+    },
   }));
 
   const processImageFiles = useCallback(async (files: File[]) => {
@@ -772,6 +777,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
       prev.forEach(revokeImagePreview);
       return nextImages;
     });
+    // 切换会话/草稿时清空待发文件胶囊
+    setPendingFiles([]);
   }, [draftKey]);
 
   useEffect(() => {
@@ -795,16 +802,40 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     return true;
   }, [attachedImages.length, clearInput, onBuiltinCommand]);
 
+  // 拖拽待发文件（Codex 式胶囊）：显示在输入框上方，发送时拼在消息头部，可单删
+  const [pendingFiles, setPendingFiles] = useState<{ path: string; name: string }[]>([]);
+  const addPendingFiles = useCallback((paths: string[]) => {
+    setPendingFiles((prev) => {
+      const known = new Set(prev.map((f) => f.path));
+      const additions = paths
+        .filter((p) => p && !known.has(p))
+        .map((p) => ({ path: p, name: p.replace(/\\/g, "/").split("/").pop() || p }));
+      return additions.length ? [...prev, ...additions] : prev;
+    });
+  }, []);
+  const removePendingFile = useCallback((path: string) => {
+    setPendingFiles((prev) => prev.filter((f) => f.path !== path));
+  }, []);
+  const clearPendingFiles = useCallback(() => setPendingFiles([]), []);
+  // 发送时把待发文件转为 @ 提及拼在消息头部
+  const withPendingMentions = useCallback((msg: string) => {
+    if (!pendingFiles.length) return msg;
+    const mentions = pendingFiles.map((f) => toExternalMentionPath(f.path, cwd ?? null));
+    const prefix = buildFileAtMentionsText(mentions);
+    return `${prefix}${msg}`;
+  }, [pendingFiles, cwd]);
+
   const handleSend = useCallback(async () => {
-    const msg = value.trim();
+    const msg = withPendingMentions(value.trim());
     if (!msg && !attachedImages.length) return;
     onAudioUnlock?.();
     const builtinAllowed = !isStreaming || canRunBuiltinSlashCommandWhileStreaming(msg);
-    if (builtinAllowed && await runBuiltinCommand(msg)) return;
+    if (builtinAllowed && await runBuiltinCommand(msg)) { clearPendingFiles(); return; }
     if (isStreaming) return;
     clearInput();
+    clearPendingFiles();
     onSend(msg, attachedImages.length ? attachedImages : undefined);
-  }, [value, attachedImages, isStreaming, runBuiltinCommand, onSend, clearInput, onAudioUnlock]);
+  }, [value, attachedImages, isStreaming, runBuiltinCommand, onSend, clearInput, onAudioUnlock, withPendingMentions, clearPendingFiles]);
 
   const slashQuery = value.startsWith("/") && !/\s/.test(value.slice(1))
     ? value.slice(1).toLowerCase()
@@ -1024,7 +1055,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   }, []);
 
   const sendQueued = useCallback((mode: "steer" | "followup") => {
-    const msg = value.trim();
+    const msg = withPendingMentions(value.trim());
     if (!msg && !attachedImages.length) return;
     onAudioUnlock?.();
     if (!attachedImages.length && onBuiltinCommand && canRunBuiltinSlashCommandWhileStreaming(msg)) {
@@ -1034,16 +1065,18 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     const streamingBehavior = mode === "steer" ? "steer" : "followUp";
     if (msg.startsWith("/") && onPromptWithStreamingBehavior) {
       clearInput();
+      clearPendingFiles();
       onPromptWithStreamingBehavior(msg, streamingBehavior, attachedImages.length ? attachedImages : undefined);
       return;
     }
     clearInput();
+    clearPendingFiles();
     if (mode === "steer" && onSteer) {
       onSteer(msg, attachedImages.length ? attachedImages : undefined);
     } else if (mode === "followup" && onFollowUp) {
       onFollowUp(msg, attachedImages.length ? attachedImages : undefined);
     }
-  }, [value, attachedImages, onBuiltinCommand, onPromptWithStreamingBehavior, onSteer, onFollowUp, clearInput, onAudioUnlock, runBuiltinCommand]);
+  }, [value, attachedImages, onBuiltinCommand, onPromptWithStreamingBehavior, onSteer, onFollowUp, clearInput, onAudioUnlock, runBuiltinCommand, withPendingMentions, clearPendingFiles]);
 
   const getNextSlashIndex = useCallback((direction: "up" | "down" | "left" | "right") => {
     const lastIndex = displayedSlashCommands.length - 1;
@@ -1905,6 +1938,42 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               </div>
             );
           })()}
+          {pendingFiles.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "0 0 8px 4px" }}>
+              {pendingFiles.map((f) => (
+                <span
+                  key={f.path}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "3px 5px 3px 8px", borderRadius: 8,
+                    border: "1px solid color-mix(in srgb, var(--border) 80%, transparent)",
+                    background: "var(--bg-panel)",
+                    fontSize: 12, color: "var(--text)", maxWidth: 280,
+                  }}
+                >
+                  <span style={{ display: "inline-flex", flexShrink: 0, color: "var(--accent)" }}>{getFileIcon(f.name, 13)}</span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.path}>{f.name}</span>
+                  <button
+                    onClick={() => removePendingFile(f.path)}
+                    title="移除"
+                    aria-label="移除"
+                    style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 16, height: 16, padding: 0, flexShrink: 0,
+                      background: "transparent", border: "none", borderRadius: 4,
+                      color: "var(--text-muted)", cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "var(--bg-hover)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                      <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" /><line x1="8.5" y1="1.5" x2="1.5" y2="8.5" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <div
             style={{
               minWidth: 0,

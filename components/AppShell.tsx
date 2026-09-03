@@ -38,7 +38,7 @@ import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useAudio } from "@/hooks/useAudio";
 import { copyText } from "@/lib/clipboard";
 import { getFileName } from "@/lib/file-paths";
-import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText, toExternalMentionPath } from "@/lib/file-fuzzy";
+import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText } from "@/lib/file-fuzzy";
 import {
   claimExtensionAttentionNotification,
   shouldShowBrowserNotification,
@@ -513,26 +513,33 @@ export function AppShell() {
   const initialSessionId = initialNavigation.sessionId;
   const [activeCwd, setActiveCwd] = useState<string | null>(null);
 
-  // 桌面版（Tauri 壳）：拖文件入窗口 → 壳发来完整路径事件 → 插入 @路径
+  // 桌面版（Tauri 壳）：拖文件入窗口 → 壳发来完整路径事件 → 输入框上方显示文件胶囊
   const selectedSessionIdForDrop = selectedSession?.id ?? null;
   useEffect(() => {
     if (!selectedSessionIdForDrop) return;
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<{ paths?: string[] }>).detail;
       if (!detail?.paths?.length) return;
-      handleAtMentions(detail.paths.map((p) => toExternalMentionPath(p, activeCwd)));
+      chatInputRef.current?.addPendingFiles(detail.paths);
     };
     window.addEventListener("pi-web:external-file-paths", handler);
     return () => window.removeEventListener("pi-web:external-file-paths", handler);
-  }, [selectedSessionIdForDrop, activeCwd, handleAtMentions]);
+  }, [selectedSessionIdForDrop]);
 
   // 整窗缩放：Ctrl+滚轮调节（所有界面等比缩放），Ctrl+0 复位，localStorage 持久化
+  const [isTauriShell, setIsTauriShell] = useState(false);
   useEffect(() => {
+    const injected = "__TAURI_INTERNALS__" in window || "__TAURI__" in window;
+    setIsTauriShell(injected);
+    document.documentElement.classList.toggle("tauri-shell", injected);
+    if (!injected) return; // 浏览器：用 Firefox/Edge 自带的 Ctrl+滚轮缩放，坐标天然正确
     const apply = (next: number) => {
-      const z = Math.min(2, Math.max(0.5, next));
-      document.documentElement.style.setProperty("--app-zoom", String(z));
-      (window as unknown as { __piAppZoom?: number }).__piAppZoom = z;
+      const z = Math.min(3, Math.max(0.5, next));
       try { window.localStorage.setItem("pi-web:app-zoom", String(z)); } catch {}
+      try {
+        const tauri = (window as unknown as { __TAURI__: { webview: { getCurrentWebview: () => { setZoom: (f: number) => Promise<void> } } } }).__TAURI__;
+        void tauri.webview.getCurrentWebview().setZoom(z).catch(() => {});
+      } catch {}
     };
     let zoom = 1;
     try { zoom = Number(window.localStorage.getItem("pi-web:app-zoom")) || 1; } catch {}
@@ -540,7 +547,7 @@ export function AppShell() {
     const onWheel = (event: WheelEvent) => {
       if (!event.ctrlKey) return;
       event.preventDefault();
-      apply(zoom + (event.deltaY < 0 ? 0.05 : -0.05));
+      apply(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === "0") {
@@ -1874,15 +1881,20 @@ export function AppShell() {
         aria-label={rightPanelOpen ? translate("files.hidePanel") : translate("files.showPanel")}
         data-mobile-toolbar-file={mobile ? "true" : undefined}
         style={{
-          marginLeft: !mobile && !sessionStats && !contextUsage ? "auto" : 0,
+          position: mobile ? "relative" : "absolute",
+          right: mobile ? undefined : (rightPanelOpen ? `${rightPanelResizer.width}px` : "126px"),
+          top: mobile ? undefined : 0,
+          height: mobile ? TOP_BAR_ICON_BUTTON_SIZE : "100%",
+          transition: mobile ? undefined : "right 0.2s ease",
+          marginLeft: mobile && !sessionStats && !contextUsage ? "auto" : 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          width: TOP_BAR_ICON_BUTTON_SIZE, height: TOP_BAR_ICON_BUTTON_SIZE, padding: 0,
+          width: TOP_BAR_ICON_BUTTON_SIZE, padding: 0,
           visibility: covered ? "hidden" : "visible",
           pointerEvents: covered ? "none" : "auto",
           background: rightPanelOpen ? "var(--bg-selected)" : "none",
           border: "none", borderLeft: "1px solid var(--border)",
           color: rightPanelOpen ? "var(--text)" : "var(--text-muted)",
-          cursor: "pointer", flexShrink: 0, transition: "color 0.12s, background 0.12s",
+          cursor: "pointer", flexShrink: 0,
         }}
         onMouseEnter={(event) => { if (!covered) event.currentTarget.style.color = "var(--text)"; }}
         onMouseLeave={(event) => { event.currentTarget.style.color = rightPanelOpen ? "var(--text)" : "var(--text-muted)"; }}
@@ -1957,6 +1969,8 @@ export function AppShell() {
     `}</style>
     <div className="app-root" style={{
       display: "flex",
+      width: "100%",
+      height: "var(--app-viewport-height, 100dvh)",
       paddingLeft: "env(safe-area-inset-left)",
       paddingRight: "env(safe-area-inset-right)",
       overflow: "hidden",
@@ -2009,7 +2023,7 @@ export function AppShell() {
       {/* Center: chat */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {/* Top bar with sidebar toggle */}
-        <div ref={topBarRef} style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
+        <div ref={topBarRef} data-tauri-drag-region="" style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
         <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
           <button
             onClick={handleSidebarToggle}
@@ -2116,6 +2130,45 @@ export function AppShell() {
             </>
           )}
           {!isMobile && renderMainFileToggle(false)}
+          {isTauriShell && (
+            <div style={{ display: "flex", alignItems: "stretch", marginLeft: "auto", height: "100%" }}>
+              <button
+                type="button"
+                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { minimize: () => void } } } }).__TAURI__.window.getCurrentWindow().minimize(); }}
+                title="最小化"
+                aria-label="最小化"
+                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+             >
+                <svg width="12" height="12" viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="1.2" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { toggleMaximize: () => void } } } }).__TAURI__.window.getCurrentWindow().toggleMaximize(); }}
+                title="最大化/还原"
+                aria-label="最大化/还原"
+                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { close: () => void } } } }).__TAURI__.window.getCurrentWindow().close(); }}
+                title="关闭"
+                aria-label="关闭"
+                style={{ width: 42, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderTopRightRadius: 12 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#e81123"; e.currentTarget.style.color = "#ffffff"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+                  <line x1="2.5" y1="2.5" x2="9.5" y2="9.5" /><line x1="9.5" y1="2.5" x2="2.5" y2="9.5" />
+                </svg>
+              </button>
+            </div>
+          )}
           {isMobile && sessionHasBranches && (
             <BranchNavigator
               tree={branchTree}

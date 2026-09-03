@@ -158,6 +158,9 @@ fn main() {
             .title("Pi Web")
             .inner_size(1280.0, 840.0)
             .min_inner_size(900.0, 600.0)
+            .decorations(false)
+            .transparent(true)
+            .shadow(true)
             .build()?;
 
             // 服务器管理线程

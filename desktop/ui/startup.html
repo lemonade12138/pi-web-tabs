@@ -4,13 +4,18 @@
 <meta charset="utf-8">
 <title>Pi Web 启动中</title>
 <style>
-  html,body { margin:0; height:100%; }
+  html,body { margin:0; height:100%; background:transparent; }
   body {
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
-    font-family:"Microsoft YaHei",system-ui,sans-serif; background:#ffffff; color:#1a1a1a;
+    display:flex; padding:6px; box-sizing:border-box;
+    font-family:"Microsoft YaHei",system-ui,sans-serif;
+  }
+  .frame {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    border-radius:14px; overflow:hidden; background:#ffffff; color:#1a1a1a;
+    border:1px solid rgba(128,128,128,.4); box-shadow:0 16px 48px rgba(0,0,0,.3);
   }
   @media (prefers-color-scheme: dark) {
-    body { background:#1a1a1a; color:#e8e8e8; }
+    .frame { background:#1a1a1a; color:#e8e8e8; border-color:rgba(255,255,255,.12); }
   }
   .logo { font-size:44px; font-weight:700; }
   .logo span { font-weight:400; }
@@ -22,10 +27,12 @@
 </style>
 </head>
 <body>
-  <div class="logo">π <span>Pi Web</span></div>
-  <div class="bar"><i></i></div>
-  <div class="tip" id="tip">正在启动本地服务…</div>
-  <div class="err" id="err"></div>
+  <div class="frame">
+    <div class="logo">π <span>Pi Web</span></div>
+    <div class="bar"><i></i></div>
+    <div class="tip" id="tip">正在启动本地服务…</div>
+    <div class="err" id="err"></div>
+  </div>
   <script>
     window.addEventListener("pi-web:desktop-status", (e) => {
       const d = e.detail || {};
