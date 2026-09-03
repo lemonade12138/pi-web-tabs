@@ -2023,8 +2023,8 @@ export function AppShell() {
       {/* Center: chat */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {/* Top bar with sidebar toggle */}
-        <div ref={topBarRef} data-tauri-drag-region="" style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
-        <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
+        <div ref={topBarRef} data-tauri-drag-region="" style={{ flexShrink: 0, position: "relative", background: "var(--bg-panel)" }}>
+        <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)", paddingRight: isTauriShell ? "126px" : undefined }}>
           <button
             onClick={handleSidebarToggle}
              title={sidebarOpen ? translate("sidebar.hide") : translate("sidebar.show")}
@@ -2123,9 +2123,9 @@ export function AppShell() {
               {renderSessionStatsButton(false)}
             </>
           )}
-          {!isMobile && renderMainFileToggle(false)}
+          {!isMobile && !isNarrowMobile && renderMainFileToggle(false)}
           {isTauriShell && (
-            <div style={{ display: "flex", alignItems: "stretch", marginLeft: "auto", height: "100%" }}>
+            <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, display: "flex", alignItems: "stretch", height: "100%", zIndex: 30 }}>
               <button
                 type="button"
                 onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { minimize: () => void } } } }).__TAURI__.window.getCurrentWindow().minimize(); }}
