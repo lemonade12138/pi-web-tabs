@@ -57,6 +57,9 @@ function writeStoredWidth(storageKey: string, width: number): void {
   }
 }
 
+// 拖拽时的自定义指针：蓝色双箭头 + 白色描边，浅色/深色背景都清晰可见（系统 col-resize 在浅色背景下易隐形）
+const COL_RESIZE_CURSOR = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M8.5 7.5 L3.5 12 L8.5 16.5 Z M15.5 7.5 L20.5 12 L15.5 16.5 Z M6.5 12 L17.5 12' fill='%232563eb' stroke='white' stroke-width='1.2' stroke-linejoin='round'/></svg>") 12 12, col-resize`;
+
 export function useResizablePanel(options: UseResizablePanelOptions) {
   const {
     ariaLabel,
@@ -144,7 +147,7 @@ export function useResizablePanel(options: UseResizablePanelOptions) {
       previousCursor: document.body.style.cursor,
       previousUserSelect: document.body.style.userSelect,
     };
-    document.body.style.cursor = "col-resize";
+    document.body.style.cursor = COL_RESIZE_CURSOR;
     document.body.style.userSelect = "none";
     setIsResizing(true);
   }, [finishResize, widthRef]);

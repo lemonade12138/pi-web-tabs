@@ -361,7 +361,7 @@ pre, code {
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
-  font-size: 14px;
+  font-size: var(--chat-font-size, 14px);
   line-height: 1.7;
   color: var(--text);
   word-break: break-word;
@@ -1228,7 +1228,7 @@ span.token.table {
   width: 12px;
   margin: 0 -6px;
   flex: 0 0 12px;
-  cursor: col-resize;
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M8.5 7.5 L3.5 12 L8.5 16.5 Z M15.5 7.5 L20.5 12 L15.5 16.5 Z M6.5 12 L17.5 12' fill='%232563eb' stroke='white' stroke-width='1.2' stroke-linejoin='round'/></svg>") 12 12, col-resize;
   touch-action: none;
   outline: none;
 }

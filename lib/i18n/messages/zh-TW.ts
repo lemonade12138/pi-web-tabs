@@ -421,6 +421,8 @@ export const zhTWLocale: LocalePlugin = {
     "i18n.diff": "Diff",
     "i18n.downloadFile": "下載檔案",
     "i18n.refreshFile": "重新整理內容",
+    "chat.increaseFont": "放大文字",
+    "chat.decreaseFont": "縮小文字",
     "i18n.liveSync": "即時同步已啟用",
     "i18n.notWatching": "未監看",
     "i18n.fileViewMode": "檔案檢視模式",
