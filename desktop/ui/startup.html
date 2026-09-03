@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pi Web 启动中</title>
+<style>
+  html,body { margin:0; height:100%; }
+  body {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    font-family:"Microsoft YaHei",system-ui,sans-serif; background:#ffffff; color:#1a1a1a;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background:#1a1a1a; color:#e8e8e8; }
+  }
+  .logo { font-size:44px; font-weight:700; }
+  .logo span { font-weight:400; }
+  .bar { width:180px; height:4px; border-radius:99px; background:rgba(128,128,128,.25); overflow:hidden; }
+  .bar i { display:block; width:40%; height:100%; border-radius:99px; background:#2563eb; animation:slide 1.1s ease-in-out infinite; }
+  @keyframes slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
+  .tip { font-size:13px; opacity:.65; }
+  .err { font-size:13px; color:#f87171; max-width:80%; text-align:center; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+  <div class="logo">π <span>Pi Web</span></div>
+  <div class="bar"><i></i></div>
+  <div class="tip" id="tip">正在启动本地服务…</div>
+  <div class="err" id="err"></div>
+  <script>
+    window.addEventListener("pi-web:desktop-status", (e) => {
+      const d = e.detail || {};
+      if (d.tip) document.getElementById("tip").textContent = d.tip;
+      if (d.error) document.getElementById("err").textContent = d.error;
+      if (d.ready) {
+        document.getElementById("tip").textContent = "已就绪，正在进入…";
+        setTimeout(() => location.replace("http://127.0.0.1:30142"), 400);
+      }
+    });
+  </script>
+</body>
+</html>

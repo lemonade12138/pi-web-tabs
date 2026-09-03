@@ -187,3 +187,20 @@ export function buildFileLineMentionText(entryPath: string, startLine: number, e
 export function buildFileAtMentionsText(entryPaths: string[]): string {
   return entryPaths.map((entryPath) => buildAtMentionText(entryPath, false)).join("");
 }
+
+/**
+ * 桌面版（Tauri）拖拽投喂路径 → @ 提及用路径。
+ * 在会话工作目录内 → 转相对路径（正斜杠）；目录外保留绝对路径（正斜杠形式）。
+ */
+export function toExternalMentionPath(p: string, cwd: string | null): string {
+  const normalized = p.replace(/\\/g, "/");
+  if (!cwd) return normalized;
+  const slash = (s: string) => s.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  const np = slash(p);
+  const nc = slash(cwd);
+  if (np === nc) return ".";
+  if (np.startsWith(nc + "/")) {
+    return normalized.slice(cwd.replace(/\\/g, "/").length).replace(/^\/+/, "");
+  }
+  return normalized;
+}

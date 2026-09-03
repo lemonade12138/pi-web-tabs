@@ -42,3 +42,16 @@
 ## 和官方版的关系
 
 官方更新后，本仓库会尽量跟进（改动集中在 `components/WorktreeSessionTabs.tsx`、`components/AppShell.tsx` 局部、`app/globals.css` 末尾、`next.config.ts`、启动脚本，均有注释标记）。
+
+## 桌面版（实验性）
+
+不想开浏览器？仓库新增 Tauri 桌面壳（`desktop/` 目录），双击图标即得原生窗口：
+
+- **安装包不到 1MB**，壳内存占用约 30MB
+- 双击自动检测 30142 端口：网页版在跑就直接连；没跑就用本机 Node 自动拉起，关窗自动清理
+- **拖文件进窗口**：Windows 原生拖拽，聊天框直接插入 `@完整文件路径`（浏览器做不到的事）
+- 找不到安装目录时，把路径写入 `%APPDATA%\pi-web-desktop\config.json`（`{"installDir":"C:\...\pi-web-custom"}`）后重启即可
+
+安装前提：网页版已安装且完成过一次构建（`npm run build`）+ Node 在 PATH 中。安装包在本仓库 Release 页（`Pi Web_1.1.0_x64-setup.exe`），便携版直接运行 zip 内 exe。
+
+注意：exe 未做代码签名，Windows Defender 首次运行可能提示，选择"仍要运行"即可；智能体本体（pi CLI + 各家密钥）仍需单独安装配置。

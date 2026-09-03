@@ -6,3 +6,4 @@ node_modules/
 Thumbs.db
 *.zip
 tsconfig.tsbuildinfo
+.next-desktop/

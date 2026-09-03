@@ -38,7 +38,7 @@ import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useAudio } from "@/hooks/useAudio";
 import { copyText } from "@/lib/clipboard";
 import { getFileName } from "@/lib/file-paths";
-import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText } from "@/lib/file-fuzzy";
+import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText, toExternalMentionPath } from "@/lib/file-fuzzy";
 import {
   claimExtensionAttentionNotification,
   shouldShowBrowserNotification,
@@ -512,6 +512,19 @@ export function AppShell() {
 
   const initialSessionId = initialNavigation.sessionId;
   const [activeCwd, setActiveCwd] = useState<string | null>(null);
+
+  // 桌面版（Tauri 壳）：拖文件入窗口 → 壳发来完整路径事件 → 插入 @路径
+  const selectedSessionIdForDrop = selectedSession?.id ?? null;
+  useEffect(() => {
+    if (!selectedSessionIdForDrop) return;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ paths?: string[] }>).detail;
+      if (!detail?.paths?.length) return;
+      handleAtMentions(detail.paths.map((p) => toExternalMentionPath(p, activeCwd)));
+    };
+    window.addEventListener("pi-web:external-file-paths", handler);
+    return () => window.removeEventListener("pi-web:external-file-paths", handler);
+  }, [selectedSessionIdForDrop, activeCwd, handleAtMentions]);
   const activeProjectKeyRef = useRef<string | null>(null);
   // True once the initial ?session= URL param has been resolved (or confirmed absent)
   const [initialSessionRestored, setInitialSessionRestored] = useState<boolean>(() => !initialSessionId);

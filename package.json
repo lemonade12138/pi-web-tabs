@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25",
     "@types/proper-lockfile": "4.1.4",
