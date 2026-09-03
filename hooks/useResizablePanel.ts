@@ -162,7 +162,9 @@ export function useResizablePanel(options: UseResizablePanelOptions) {
     event.preventDefault();
 
     const direction = growthDirection === "right" ? 1 : -1;
-    const nextWidth = clampWidth(drag.startWidth + ((event.clientX - drag.startX) * direction));
+    // 整窗缩放补偿：面板宽度写在缩放容器内，视觉尺寸 = 值×缩放；鼠标位移是视口像素，需除以缩放
+    const zoomCompensation = Number((window as unknown as { __piAppZoom?: number }).__piAppZoom) || 1;
+    const nextWidth = clampWidth(drag.startWidth + ((event.clientX - drag.startX) * direction / zoomCompensation));
     applyLiveWidth(nextWidth);
     event.currentTarget.setAttribute("aria-valuenow", String(nextWidth));
     event.currentTarget.setAttribute("aria-valuetext", `${nextWidth} px`);

@@ -13,9 +13,9 @@ try {
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: configDir,
-  // 桌面版（Tauri 壳）用 standalone 产物由壳拉起；设 PI_DESKTOP_BUILD=1 时输出到
-  // 独立目录 .next-desktop，避免干扰正在运行的浏览器版服务器
-  ...(process.env.PI_DESKTOP_BUILD ? { distDir: ".next-desktop", output: "standalone" as const } : { output: "standalone" as const }),
+  // 桌面版构建（PI_DESKTOP_BUILD=1）：输出独立目录 .next-desktop + standalone，由 Tauri 壳拉起，
+  // 不干扰正在运行的浏览器版服务器；常规构建不产出 standalone，避免与运行中的服务抢目录
+  ...(process.env.PI_DESKTOP_BUILD ? { distDir: ".next-desktop", output: "standalone" as const } : {}),
   // hide the Next.js dev-tools indicator ball in dev mode
   devIndicators: false,
   serverExternalPackages: [

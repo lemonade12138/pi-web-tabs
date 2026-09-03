@@ -421,8 +421,6 @@ export const zhCNLocale: LocalePlugin = {
     "i18n.diff": "Diff",
     "i18n.downloadFile": "下载文件",
     "i18n.refreshFile": "刷新内容",
-    "chat.increaseFont": "调大文字",
-    "chat.decreaseFont": "调小文字",
     "i18n.liveSync": "实时同步已启用",
     "i18n.notWatching": "未监视",
     "i18n.fileViewMode": "文件视图模式",

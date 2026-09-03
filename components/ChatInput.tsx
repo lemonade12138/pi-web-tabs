@@ -452,21 +452,6 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const [toolDropdownOpen, setToolDropdownOpen] = useState(false);
   const [thinkingDropdownOpen, setThinkingDropdownOpen] = useState(false);
   const [controlsMenuOpen, setControlsMenuOpen] = useState(false);
-  // 聊天字号：localStorage 持久化，全局 CSS 变量 --chat-font-size 控制消息正文字号
-  const [chatFontSize, setChatFontSize] = useState(14);
-  useEffect(() => {
-    let saved = 14;
-    try { saved = Number(window.localStorage.getItem("pi-web:chat-font-size")) || 14; } catch {}
-    saved = Math.max(12, Math.min(20, saved));
-    document.documentElement.style.setProperty("--chat-font-size", `${saved}px`);
-    setChatFontSize(saved);
-  }, []);
-  const applyChatFontSize = useCallback((next: number) => {
-    const clamped = Math.max(12, Math.min(20, next));
-    setChatFontSize(clamped);
-    try { window.localStorage.setItem("pi-web:chat-font-size", String(clamped)); } catch {}
-    document.documentElement.style.setProperty("--chat-font-size", `${clamped}px`);
-  }, []);
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>(() => (
     draftKey ? draftImagesToAttachedImages(getDraft(draftKey)?.images) : []
   ));
@@ -2441,48 +2426,6 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 </svg>
                  {t("chat.stop")}
               </button>
-            )}
-
-            {!isMobile && (
-              <div
-                style={{
-                  display: "flex", alignItems: "center", gap: 2,
-                  height: 32, padding: "0 4px",
-                  background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 9,
-                }}
-              >
-                <button
-                  onClick={() => applyChatFontSize(chatFontSize - 1)}
-                  title={t("chat.decreaseFont")}
-                  aria-label={t("chat.decreaseFont")}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 24, height: 24, padding: 0,
-                    background: "transparent", border: "none", borderRadius: 6,
-                    color: "var(--text-muted)", cursor: "pointer",
-                    fontSize: 11, fontWeight: 700,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--bg-hover)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
-                >A-</button>
-                <span style={{ fontSize: 11, minWidth: 20, textAlign: "center", color: "var(--text-muted)" }}>{chatFontSize}</span>
-                <button
-                  onClick={() => applyChatFontSize(chatFontSize + 1)}
-                  title={t("chat.increaseFont")}
-                  aria-label={t("chat.increaseFont")}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 24, height: 24, padding: 0,
-                    background: "transparent", border: "none", borderRadius: 6,
-                    color: "var(--text-muted)", cursor: "pointer",
-                    fontSize: 13, fontWeight: 700,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--bg-hover)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
-                >A+</button>
-              </div>
             )}
 
             {onSoundToggle !== undefined && (

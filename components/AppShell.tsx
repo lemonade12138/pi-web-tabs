@@ -525,6 +525,36 @@ export function AppShell() {
     window.addEventListener("pi-web:external-file-paths", handler);
     return () => window.removeEventListener("pi-web:external-file-paths", handler);
   }, [selectedSessionIdForDrop, activeCwd, handleAtMentions]);
+
+  // 整窗缩放：Ctrl+滚轮调节（所有界面等比缩放），Ctrl+0 复位，localStorage 持久化
+  useEffect(() => {
+    const apply = (next: number) => {
+      const z = Math.min(2, Math.max(0.5, next));
+      document.documentElement.style.setProperty("--app-zoom", String(z));
+      (window as unknown as { __piAppZoom?: number }).__piAppZoom = z;
+      try { window.localStorage.setItem("pi-web:app-zoom", String(z)); } catch {}
+    };
+    let zoom = 1;
+    try { zoom = Number(window.localStorage.getItem("pi-web:app-zoom")) || 1; } catch {}
+    apply(zoom);
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      apply(zoom + (event.deltaY < 0 ? 0.05 : -0.05));
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === "0") {
+        event.preventDefault();
+        apply(1);
+      }
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
   const activeProjectKeyRef = useRef<string | null>(null);
   // True once the initial ?session= URL param has been resolved (or confirmed absent)
   const [initialSessionRestored, setInitialSessionRestored] = useState<boolean>(() => !initialSessionId);
@@ -1925,10 +1955,8 @@ export function AppShell() {
         }
       }
     `}</style>
-    <div style={{
+    <div className="app-root" style={{
       display: "flex",
-      width: "100%",
-      height: "var(--app-viewport-height, 100dvh)",
       paddingLeft: "env(safe-area-inset-left)",
       paddingRight: "env(safe-area-inset-right)",
       overflow: "hidden",

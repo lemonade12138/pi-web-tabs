@@ -356,12 +356,19 @@ pre, code {
   font-family: var(--font-mono);
 }
 
+/* 整窗缩放：Ctrl+滚轮调 --app-zoom，所有界面元素等比缩放 */
+.app-root {
+  zoom: var(--app-zoom, 1);
+  width: calc(100% / var(--app-zoom, 1));
+  height: calc(var(--app-viewport-height, 100dvh) / var(--app-zoom, 1));
+}
+
 /* react-markdown output styles */
 .markdown-body {
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
-  font-size: var(--chat-font-size, 14px);
+  font-size: 14px;
   line-height: 1.7;
   color: var(--text);
   word-break: break-word;

@@ -421,8 +421,6 @@ export const enLocale: LocalePlugin = {
     "i18n.diff": "Diff",
     "i18n.downloadFile": "Download file",
     "i18n.refreshFile": "Refresh content",
-    "chat.increaseFont": "Larger text",
-    "chat.decreaseFont": "Smaller text",
     "i18n.liveSync": "Live sync active",
     "i18n.notWatching": "Not watching",
     "i18n.fileViewMode": "File view mode",
