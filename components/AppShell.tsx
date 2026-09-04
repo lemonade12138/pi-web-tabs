@@ -2209,29 +2209,6 @@ export function AppShell() {
                   </svg>
                 )}
               </button>
-              {mobileToolbarMoreOpen && (
-                <div
-                  id="desktop-toolbar-actions"
-                  role="toolbar"
-                  aria-label={translate("chat.moreControls")}
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    zIndex: 220,
-                    display: "flex",
-                    alignItems: "stretch",
-                    background: "var(--bg-panel)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    boxShadow: "0 10px 28px rgba(0,0,0,0.14)",
-                    overflow: "hidden",
-                  }}
-                >
-                  {renderChatToolbarActions(false)}
-                  {renderSessionStatsButton(false)}
-                </div>
-              )}
             </div>
           )}
           {!isMobile && !topBarOverflow && (
@@ -2562,6 +2539,32 @@ export function AppShell() {
 
         </div>
         {isMobile && renderProjectTrustWarning(true)}
+        {!isMobile && topBarOverflow && mobileToolbarMoreOpen && (
+          <div
+            id="desktop-toolbar-actions"
+            role="toolbar"
+            aria-label={translate("chat.moreControls")}
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: isTauriShell ? 154 : 0,
+              zIndex: 220,
+              display: "flex",
+              alignItems: "stretch",
+              height: "calc(36px + env(safe-area-inset-top))",
+              background: "var(--bg-panel)",
+              borderBottom: "1px solid var(--border)",
+              boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+              overflowX: "auto",
+              overflowY: "hidden",
+              scrollbarWidth: "none",
+            }}
+          >
+            {renderChatToolbarActions(false)}
+            {renderSessionStatsButton(false)}
+          </div>
+        )}
         </div>
 
         {activeCwd && (
