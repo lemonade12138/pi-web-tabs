@@ -104,7 +104,7 @@ export function AppShell() {
       const row = topBarRowRef.current;
       const m = barMeasureRef.current;
       if (!row || !m) { setTopBarOverflow(false); return; }
-      const reserve = (isTauriShell ? 154 : 0) + TOP_BAR_ICON_BUTTON_SIZE * 2 + 12;
+      const reserve = (isTauriShell ? 154 : 0) + TOP_BAR_ICON_BUTTON_SIZE * 2 + 44;
       const overflow = m.offsetWidth > row.clientWidth - reserve;
       setTopBarOverflow((prev) => (prev === overflow ? prev : overflow));
     };
@@ -1826,6 +1826,7 @@ export function AppShell() {
           marginLeft: mobile ? 0 : "auto",
           display: "flex", alignItems: "center", justifyContent: "flex-end",
           flex: mobile ? 1 : undefined,
+          flexShrink: mobile ? undefined : 0,
           minWidth: 0,
           gap: mobile ? 7 : 10,
           paddingLeft: mobile ? 6 : 12,
