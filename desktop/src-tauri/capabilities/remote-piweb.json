@@ -22,6 +22,9 @@
     "core:window:allow-is-maximized",
     "core:webview:allow-set-webview-zoom",
     "core:window:allow-outer-position",
-    "core:window:allow-set-position"
+    "core:window:allow-set-position",
+    "allow-open-external-preview",
+    "allow-resize-external-preview",
+    "allow-close-external-preview"
   ]
 }

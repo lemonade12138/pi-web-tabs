@@ -177,6 +177,42 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Enables the close_external_preview command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-close-external-preview",
+          "markdownDescription": "Enables the close_external_preview command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_external_preview command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-external-preview",
+          "markdownDescription": "Enables the open_external_preview command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the resize_external_preview command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-resize-external-preview",
+          "markdownDescription": "Enables the resize_external_preview command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the close_external_preview command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-close-external-preview",
+          "markdownDescription": "Denies the close_external_preview command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_external_preview command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-external-preview",
+          "markdownDescription": "Denies the open_external_preview command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the resize_external_preview command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-resize-external-preview",
+          "markdownDescription": "Denies the resize_external_preview command without any pre-configured scope."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",

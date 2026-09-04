@@ -12,7 +12,10 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{
+    Manager, PhysicalPosition, PhysicalSize, Position, Size, WebviewUrl, WebviewWindowBuilder,
+    WindowEvent,
+};
 
 // 关闭 DWM 系统边框环（透明边缝外围那圈框）+ 显式声明窗口圆角（Win11）
 #[cfg(windows)]
@@ -36,6 +39,63 @@ fn polish_window_frame(hwnd: isize) {
 const PORT: u16 = 30142;
 const APP_URL: &str = "http://127.0.0.1:30142";
 const READY_TIMEOUT_SECS: u64 = 90;
+
+// ──────────── 网页预览：主窗口内多 webview（真内核渲染外部网址）────────────
+// 坐标一律用物理像素：前端把面板 getBoundingClientRect() × devicePixelRatio 传进来。
+const PREVIEW_LABEL: &str = "preview";
+
+#[tauri::command]
+async fn open_external_preview(
+    app: tauri::AppHandle,
+    url: String,
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+) -> Result<(), String> {
+    // 命令本身就在异步运行时调度：这里直接创建/导航即可，避免 Windows 同步创建死锁
+    let parsed = url.parse::<url::Url>().map_err(|e| e.to_string())?;
+    let window = app.get_window("main").ok_or("主窗口不存在")?;
+    if let Some(webview) = app.get_webview(PREVIEW_LABEL) {
+        webview.navigate(parsed).map_err(|e| e.to_string())?;
+    } else {
+        window
+            .add_child(
+                tauri::WebviewBuilder::new(PREVIEW_LABEL, WebviewUrl::External(parsed)),
+                Position::Physical(PhysicalPosition::new(x as i32, y as i32)),
+                Size::Physical(PhysicalSize::new(w as u32, h as u32)),
+            )
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn resize_external_preview(
+    app: tauri::AppHandle,
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+) -> Result<(), String> {
+    if let Some(webview) = app.get_webview(PREVIEW_LABEL) {
+        webview
+            .set_position(PhysicalPosition::new(x as i32, y as i32))
+            .map_err(|e| e.to_string())?;
+        webview
+            .set_size(PhysicalSize::new(w as u32, h as u32))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn close_external_preview(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(webview) = app.get_webview(PREVIEW_LABEL) {
+        webview.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
 
 // ───────────────────────── 服务器状态 ─────────────────────────
 
@@ -167,6 +227,11 @@ fn main() {
             }
         }))
         .manage(state)
+        .invoke_handler(tauri::generate_handler![
+            open_external_preview,
+            resize_external_preview,
+            close_external_preview,
+        ])
         .setup(|app| {
             let handle = app.handle().clone();
 

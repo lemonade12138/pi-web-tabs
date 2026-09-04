@@ -7,6 +7,7 @@ import { SessionSidebar } from "./SessionSidebar";
 import { ChatWindow } from "./ChatWindow";
 import { FileViewer } from "./FileViewer";
 import { WorktreeSessionTabs } from "./WorktreeSessionTabs";
+import { WebPreviewPanel } from "./WebPreviewPanel";
 
 const OPEN_TABS_KEY = "pi-web:open-tabs";
 function loadOpenTabIds(): string[] | null {
@@ -271,6 +272,9 @@ export function AppShell() {
   const [projectTrustError, setProjectTrustError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [webPreviewUrl, setWebPreviewUrl] = useState<string | null>(null);
+  const [webUrlDraft, setWebUrlDraft] = useState("");
+  const [webInputOpen, setWebInputOpen] = useState(false);
   const [mobileToolbarMoreOpen, setMobileToolbarMoreOpen] = useState(false);
   const [mobileSidebarReady, setMobileSidebarReady] = useState(false);
   const sidebarWidthRef = useRef(SIDEBAR_DEFAULT_WIDTH);
@@ -1144,6 +1148,14 @@ export function AppShell() {
       if (selectedSession?.id === sessionId) setSelectedSession((prev) => (prev ? { ...prev, name: newName } : prev));
     } catch {}
   }, [selectedSession]);
+
+  const openWebPreview = useCallback(() => {
+    const raw = webUrlDraft.trim();
+    if (!raw) return;
+    const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    setWebPreviewUrl(url);
+    setWebInputOpen(false);
+  }, [webUrlDraft]);
 
   const handleOpenFile = useCallback((
     filePath: string,
@@ -2734,15 +2746,66 @@ export function AppShell() {
             <TabBar
               tabs={fileTabs}
               activeTabId={activeFileTabId ?? ""}
-              onSelectTab={setActiveFileTabId}
+              onSelectTab={(id) => { setActiveFileTabId(id); setWebPreviewUrl(null); }}
               onCloseTab={handleCloseFileTab}
             />
           </div>
+          {isTauriShell && !webPreviewUrl && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, paddingRight: 4 }}>
+              {webInputOpen ? (
+                <>
+                  <input
+                    autoFocus
+                    value={webUrlDraft}
+                    onChange={(e) => setWebUrlDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") openWebPreview();
+                      if (e.key === "Escape") setWebInputOpen(false);
+                    }}
+                    placeholder="输入网址，回车在右侧打开"
+                    style={{ width: 170, fontSize: 11, padding: "3px 8px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)", color: "var(--text)", outline: "none" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={openWebPreview}
+                    title="打开网页"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, background: "none", border: "none", borderRadius: 4, color: "#4ade80", cursor: "pointer", flexShrink: 0 }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWebInputOpen(false)}
+                    title="取消"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, background: "none", border: "none", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setWebUrlDraft(""); setWebInputOpen(true); }}
+                  title="在右侧用真实浏览器打开网页"
+                  aria-label="在右侧用真实浏览器打开网页"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, padding: 0, background: "none", border: "none", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M3 12h18" />
+                    <path d="M12 3a15 15 0 0 1 4 9 15 15 0 0 1-4 9 15 15 0 0 1-4-9 15 15 0 0 1 4-9z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
                   </div>
 
         {/* Only the active viewer is mounted. Lightweight per-tab state is restored on activation. */}
         <div style={{ flex: 1, overflow: "hidden", paddingBottom: "env(safe-area-inset-bottom)" }}>
-          {activeFileTab?.filePath ? (
+          {webPreviewUrl ? (
+            <WebPreviewPanel url={webPreviewUrl} onClose={() => setWebPreviewUrl(null)} />
+          ) : activeFileTab?.filePath ? (
             <FileViewer
               key={`${activeFileTab.id}:${activeFileTab.viewerRevision ?? 0}`}
               filePath={activeFileTab.filePath}
