@@ -356,14 +356,33 @@ pre, code {
   font-family: var(--font-mono);
 }
 
-/* Tauri 桌面壳：无留边满铺（圆角由 Win11 系统对窗口本身处理） */
+/* Tauri 桌面壳：应用自绘大圆角+阴影（悬浮卡片），最大化时全屏铺满 */
 .tauri-shell,
 .tauri-shell body {
   background: transparent !important;
 }
 .tauri-shell body {
-  padding: 0;
+  padding: 24px;
   box-sizing: border-box;
+}
+.tauri-shell .app-root {
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.18);
+}
+.tauri-shell .window-btns {
+  border-top-right-radius: 12px;
+  overflow: hidden;
+}
+/* 最大化：铺满、无阴影 */
+.tauri-shell.tauri-max body {
+  padding: 0;
+}
+.tauri-shell.tauri-max .app-root {
+  border-radius: 0;
+  box-shadow: none;
+}
+.tauri-shell.tauri-max .window-btns {
+  border-top-right-radius: 0;
 }
 
 /* react-markdown output styles */

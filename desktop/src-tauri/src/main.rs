@@ -29,7 +29,7 @@ fn polish_window_frame(hwnd: isize) {
     unsafe {
         let color_none: u32 = 0xFFFF_FFFE; // DWMWA_COLOR_NONE：边框全透明
         DwmSetWindowAttribute(hwnd, 34, &color_none as *const u32, 4); // DWMWA_BORDER_COLOR
-        let round: u32 = 2; // DWMWCP_ROUND：窗口矩形本身圆角
+        let round: u32 = 1; // DWMWCP_DONOTROUND：系统不裁圆角——圆角由应用自绘（跟随界面缩放，最大化归零）
         DwmSetWindowAttribute(hwnd, 33, &round as *const u32, 4); // DWMWA_WINDOW_CORNER_PREFERENCE
         let nc_disabled: u32 = 1; // DWMNCRP_DISABLED：彻底关闭 DWM 非客户区渲染（含系统投影）
         DwmSetWindowAttribute(hwnd, 2, &nc_disabled as *const u32, 4); // DWMWA_NCRENDERING_POLICY
@@ -251,8 +251,15 @@ fn main() {
                         .join("EBWebView")
                         .join("Default")
                         .join("Service Worker");
-                    if sw_dir.exists() {
-                        let _ = std::fs::remove_dir_all(sw_dir);
+                    // 重试：上一个实例的 webview 进程可能还短暂锁着文件
+                    for _ in 0..8 {
+                        if !sw_dir.exists() {
+                            break;
+                        }
+                        if std::fs::remove_dir_all(&sw_dir).is_ok() {
+                            break;
+                        }
+                        std::thread::sleep(Duration::from_millis(250));
                     }
                 }
             }
@@ -332,7 +339,14 @@ fn main() {
                         let _ = window.eval(&format!(
                             "window.dispatchEvent(new CustomEvent('pi-web:desktop-status',{{detail:{{ready:true}}}}))",
                         ));
-                        let _ = window.eval(&format!("location.replace('{}')", APP_URL));
+                        let boot = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.as_millis())
+                            .unwrap_or(0);
+                        let _ = window.eval(&format!(
+                            "location.replace('{}/?piweb_boot={}')",
+                            APP_URL, boot
+                        ));
                         return;
                     }
                     if Instant::now() > deadline {

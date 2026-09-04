@@ -44,7 +44,9 @@ export function useWindowDrag(enabled: boolean) {
     const onPointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       const target = event.target as Element;
-      if (!target.closest?.("[data-custom-drag-region]")) return;
+      const onRegion = !!target.closest?.("[data-custom-drag-region]");
+      const onMargin = target === document.body || target.id === "__next";
+      if (!onRegion && !onMargin) return;
       if (isInteractive(target)) return;
       event.preventDefault();
       dragging = true;

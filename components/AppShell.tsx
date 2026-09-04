@@ -626,6 +626,24 @@ export function AppShell() {
   // 整窗缩放：Ctrl+滚轮调节（所有界面等比缩放），Ctrl+0 复位，localStorage 持久化
   const [isTauriShell, setIsTauriShell] = useState(false);
   useWindowDrag(isTauriShell);
+  // 窗口圆角/阴影由应用自绘（跟随界面缩放）；最大化切 tauri-max 类：铺满无阴影
+  const [winMaximized, setWinMaximized] = useState(false);
+  useEffect(() => {
+    if (!isTauriShell) return;
+    const check = () => {
+      try {
+        const t = (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { isMaximized: () => Promise<boolean> } } } }).__TAURI__;
+        void t.window.getCurrentWindow().isMaximized().then((v) => {
+          setWinMaximized(v);
+          document.documentElement.classList.toggle("tauri-max", v);
+        }).catch(() => {});
+      } catch {}
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [isTauriShell]);
+  // 非最大化：窗口四周留透明边（阴影绘制区），留边区可拖动窗口
   useEffect(() => {
     const injected = "__TAURI_INTERNALS__" in window || "__TAURI__" in window;
     setIsTauriShell(injected);
@@ -2063,11 +2081,12 @@ export function AppShell() {
     <div className="app-root" style={{
       display: "flex",
       width: "100%",
-      height: "var(--app-viewport-height, 100dvh)",
+      height: "100%",
       paddingLeft: "env(safe-area-inset-left)",
       paddingRight: "env(safe-area-inset-right)",
       overflow: "hidden",
       background: "var(--bg)",
+      position: "relative",
     }}>
       {/* Mobile overlay backdrop */}
       <div
@@ -2858,7 +2877,7 @@ export function AppShell() {
         </div>
       </div>
       {isTauriShell && (
-            <div style={{ position: "fixed", right: 0, top: 0, display: "flex", alignItems: "stretch", height: "36px", zIndex: 300 }}>
+            <div className="window-btns" style={{ position: "absolute", right: 0, top: 0, display: "flex", alignItems: "stretch", height: "36px", zIndex: 300 }}>
               <button
                 type="button"
                 onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { minimize: () => void } } } }).__TAURI__.window.getCurrentWindow().minimize(); }}
