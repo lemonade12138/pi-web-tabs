@@ -230,7 +230,6 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
 
   return (
     <div
-      data-custom-drag-region=""
       style={{
         position: "relative",
         display: "flex",
@@ -281,7 +280,6 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
 
       <div
         ref={scrollRef}
-        data-custom-drag-region=""
         style={{
           display: "flex",
           alignItems: "center",
