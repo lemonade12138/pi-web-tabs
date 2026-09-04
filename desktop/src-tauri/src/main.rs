@@ -24,6 +24,80 @@ extern "system" {
     fn DwmSetWindowAttribute(hwnd: isize, attr: u32, value: *const u32, size: u32) -> i32;
 }
 
+// 无装饰窗自愈：Windows 在最小化还原/贴靠等过渡时会自作主张把系统标题栏画回来（通病），
+// 检测到客户区被非客户区顶偏就强制重算边框剥掉它。
+#[cfg(windows)]
+#[repr(C)]
+struct WinPoint {
+    x: i32,
+    y: i32,
+}
+
+#[cfg(windows)]
+#[repr(C)]
+struct WinRect {
+    left: i32,
+    top: i32,
+    right: i32,
+    bottom: i32,
+}
+
+#[cfg(windows)]
+#[link(name = "user32")]
+extern "system" {
+    fn GetWindowRect(hwnd: isize, rect: *mut WinRect) -> i32;
+    fn GetClientRect(hwnd: isize, rect: *mut WinRect) -> i32;
+    fn MapWindowPoints(from: isize, to: isize, pts: *mut WinPoint, count: u32) -> i32;
+    fn SetWindowPos(hwnd: isize, after: isize, x: i32, y: i32, cx: i32, cy: i32, flags: u32) -> i32;
+}
+
+const SWP_NOSIZE: u32 = 0x1;
+const SWP_NOMOVE: u32 = 0x2;
+const SWP_NOZORDER: u32 = 0x4;
+const SWP_NOACTIVATE: u32 = 0x10;
+const SWP_FRAMECHANGED: u32 = 0x20;
+
+// 健康的无装饰窗：客户区 == 窗口矩形（tao 的 NCCALCSIZE 让客户区铺满）。
+// 出现幽灵系统框时客户区原点被顶下去/挤进来，以此判定。
+#[cfg(windows)]
+fn ghost_frame_present(hwnd: isize) -> bool {
+    unsafe {
+        let mut wr = WinRect { left: 0, top: 0, right: 0, bottom: 0 };
+        let mut cr = WinRect { left: 0, top: 0, right: 0, bottom: 0 };
+        if GetWindowRect(hwnd, &mut wr) == 0 || GetClientRect(hwnd, &mut cr) == 0 {
+            return false;
+        }
+        let mut pts = [
+            WinPoint { x: cr.left, y: cr.top },
+            WinPoint { x: cr.right, y: cr.bottom },
+        ];
+        MapWindowPoints(hwnd, 0, pts.as_mut_ptr(), 2);
+        pts[0].x != wr.left || pts[0].y != wr.top || pts[1].x != wr.right || pts[1].y != wr.bottom
+    }
+}
+
+#[cfg(windows)]
+fn ensure_no_ghost_frame(window: &tauri::Window) {
+    if let Ok(hwnd) = window.hwnd() {
+        let h = hwnd.0 as isize;
+        if ghost_frame_present(h) {
+            let _ = window.set_decorations(false);
+            polish_window_frame(h);
+            unsafe {
+                SetWindowPos(
+                    h,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+                );
+            }
+        }
+    }
+}
+
 #[cfg(windows)]
 fn polish_window_frame(hwnd: isize) {
     unsafe {
@@ -359,6 +433,11 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            // 幽灵系统框自愈：还原/贴靠等过渡后 Windows 可能把标题栏画回来
+            #[cfg(windows)]
+            if matches!(event, WindowEvent::Focused(true) | WindowEvent::Resized(_)) {
+                ensure_no_ghost_frame(window);
+            }
             // 拖拽真路径：Tauri 原生拿到完整路径，转事件给网页
             if let WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
                 if let (Some(webview), Ok(json)) = (window.get_webview_window("main"), serde_json::to_string(&paths)) {
