@@ -2497,6 +2497,8 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-single-instance",
  "url",
+ "windows",
+ "windows-core 0.61.2",
 ]
 
 [[package]]

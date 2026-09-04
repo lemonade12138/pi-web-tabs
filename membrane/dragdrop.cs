@@ -16,6 +16,8 @@ class DragTool
 
     static IntPtr targetHwnd;
     static string filePath;
+    public static bool textMode = false;
+    public static string textPayload = "hello-drag-test";
 
     class SourceForm : Form
     {
@@ -30,10 +32,15 @@ class DragTool
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
+            Console.WriteLine("dragstart");
             var data = new DataObject();
-            var list = new System.Collections.Specialized.StringCollection();
-            list.Add(FilePath);
-            data.SetFileDropList(list);
+            if (DragTool.textMode) { data.SetData(DataFormats.UnicodeText, DragTool.textPayload); }
+            else
+            {
+                var list = new System.Collections.Specialized.StringCollection();
+                list.Add(FilePath);
+                data.SetFileDropList(list);
+            }
             var res = DoDragDrop(data, DragDropEffects.Copy);
             Console.WriteLine("effect:" + res);
             Application.Exit();
@@ -55,6 +62,7 @@ class DragTool
     {
         filePath = args[0];
         targetHwnd = (IntPtr)long.Parse(args[1]);
+        if (args.Length >= 3 && args[2] == "text") { textMode = true; }
         RECT r; GetWindowRect(targetHwnd, out r);
         int tx = (r.L + r.R) / 2, ty = (r.T + r.B) / 2;
         if (args.Length >= 4) { tx = r.L + int.Parse(args[2]); ty = r.T + int.Parse(args[3]); }

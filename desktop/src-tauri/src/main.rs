@@ -17,6 +17,9 @@ use tauri::{
     WindowEvent,
 };
 
+#[cfg(windows)]
+mod own_drop;
+
 // 关闭 DWM 系统边框环（透明边缝外围那圈框）+ 显式声明窗口圆角（Win11）
 #[cfg(windows)]
 #[link(name = "dwmapi")]
@@ -357,6 +360,30 @@ fn main() {
             {
                 if let Ok(hwnd) = window.hwnd() {
                     polish_window_frame(hwnd.0 as isize);
+                    // 自装文件拖拽：在内层 WebView2 窗口上注册自己的拖拽目标
+                    let root = hwnd.0 as isize;
+                    let w_event = window.clone();
+                    let w_probe = window.clone();
+                    let w_main = window.clone();
+                    own_drop::win::install(
+                        root,
+                        move |job| {
+                            let _ = w_main.run_on_main_thread(job);
+                        },
+                        move |ev| {
+                            if let own_drop::win::DropEvent::Drop(paths, _, _) = ev {
+                                if let Ok(json) = serde_json::to_string(&paths) {
+                                    let _ = w_event.eval(&format!(
+                                        "window.dispatchEvent(new CustomEvent('pi-web:external-file-paths',{{detail:{{paths:{} }}}}))",
+                                        json
+                                    ));
+                                }
+                            }
+                        },
+                        move |_probe| {
+                            // 探针仅用于诊断，正式版不改窗口标题
+                        },
+                    );
                 }
             }
 
