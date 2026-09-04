@@ -177,7 +177,7 @@ fn main() {
             .min_inner_size(900.0, 600.0)
             .decorations(false)
             .transparent(true)
-            .shadow(true)
+            .shadow(false)
             .build()?;
 
             // 去掉系统边框环，让透明边缝真透明
