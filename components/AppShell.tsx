@@ -138,6 +138,26 @@ export function AppShell() {
       return next;
     });
   }, [sessionCatalog]);
+  // 新建会话产生的标签插到最前（顶替草稿标签的位置），而不是追加到末尾
+  const prependTab = useCallback((sessionId: string) => {
+    setOpenTabIds((prev) => {
+      if (prev && prev.includes(sessionId)) return prev;
+      let next: string[];
+      if (prev) {
+        next = [sessionId, ...prev].slice(0, 50);
+      } else {
+        const recents = sessionCatalog
+          .slice()
+          .sort((a, b) => b.modified.localeCompare(a.modified))
+          .slice(0, 20)
+          .map((s) => s.id)
+          .filter((id) => id !== sessionId);
+        next = [sessionId, ...recents];
+      }
+      persistOpenTabIds(next);
+      return next;
+    });
+  }, [sessionCatalog]);
   const closeTab = useCallback((sessionId: string) => {
     setOpenTabIds((prev) => {
       const next = (prev ?? []).filter((id) => id !== sessionId);
@@ -882,12 +902,12 @@ export function AppShell() {
     if (activeNewSessionDraftKeyRef.current !== sourceDraftKey) return;
     invalidateWorkspaceRestore();
     activeNewSessionDraftKeyRef.current = null;
-    ensureTab(session.id);
+    prependTab(session.id);
     setNewSessionCwd(null);
     setSelectedSession(session);
     hydrateSelectedSession(session.id);
     router.replace(`?session=${encodeURIComponent(session.id)}`, { scroll: false });
-  }, [invalidateWorkspaceRestore, router, hydrateSelectedSession, ensureTab]);
+  }, [invalidateWorkspaceRestore, router, hydrateSelectedSession, prependTab]);
 
   const deliverSessionNotification = useCallback(({
     targetSession,
