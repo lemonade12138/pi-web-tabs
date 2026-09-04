@@ -555,6 +555,7 @@ export function AppShell() {
     if (!injected) return; // 浏览器：用 Firefox/Edge 自带的 Ctrl+滚轮缩放，坐标天然正确
     const apply = (next: number) => {
       const z = Math.min(10, Math.max(0.5, next));
+      zoom = z; // 更新当前倍数，否则滚轮每次都只在初始值±0.1上打转，无法累加
       try { window.localStorage.setItem("pi-web:app-zoom", String(z)); } catch {}
       try {
         const tauri = (window as unknown as { __TAURI__: { webview: { getCurrentWebview: () => { setZoom: (f: number) => Promise<void> } } } }).__TAURI__;
