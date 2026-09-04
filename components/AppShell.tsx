@@ -2225,8 +2225,8 @@ export function AppShell() {
               ref={barMeasureRef}
               aria-hidden="true"
               style={{
-                position: "absolute", top: 0, left: 0,
-                visibility: "hidden", pointerEvents: "none",
+                position: "absolute", top: 0, left: -99999,
+                visibility: "hidden", pointerEvents: "none", zIndex: -1,
                 display: "flex", alignItems: "center", height: "100%", whiteSpace: "nowrap",
               }}
             >
