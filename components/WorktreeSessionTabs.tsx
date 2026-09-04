@@ -126,7 +126,9 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
     const ids = els.map((el) => el.dataset.tabId ?? "");
     const fromIndex = ids.indexOf(session.id);
     if (fromIndex === -1) return;
-    const rects = els.map((el) => ({ left: el.offsetLeft, width: el.offsetWidth }));
+    // 统一用屏幕坐标（getBoundingClientRect），否则窗口不在屏幕原点时 clientX 与布局坐标存在偏差，
+    // 往前拖永远够不到前面标签的中点，前面的标签不会避让
+    const rects = els.map((el) => { const r = el.getBoundingClientRect(); return { left: r.left, width: r.width }; });
     const gap = rects.length > 1 ? Math.max(0, rects[1].left - rects[0].left - rects[0].width) : 6;
     const draggedWidth = rects[fromIndex].width;
     const startX = e.clientX;
