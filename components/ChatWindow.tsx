@@ -967,9 +967,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                 position: "absolute", top: 0, right: 0, zIndex: 40,
                 width: 36, height: 32,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                background: filePanelOpen ? "var(--bg-selected)" : "var(--bg-panel)",
-                borderLeft: "1px solid var(--border)",
-                borderBottom: "1px solid var(--border)",
+                background: "transparent",
                 color: filePanelOpen ? "var(--text)" : "var(--text-muted)",
                 cursor: "pointer",
               }}

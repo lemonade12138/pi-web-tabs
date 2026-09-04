@@ -614,8 +614,7 @@ export function ChatMinimap({
         position: "relative",
         cursor: "pointer",
         userSelect: "none",
-        borderLeft: "1px solid var(--border)",
-        background: "var(--bg-panel)",
+        background: "transparent",
         overflow: "visible",
       }}
     >
