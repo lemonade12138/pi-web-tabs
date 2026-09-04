@@ -956,36 +956,13 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
         </div>
         {isMobile ? null : (
           <>
-          {isTauriDesktop && (
-            <button
-              type="button"
-              onClick={onToggleFilePanel}
-              aria-controls="file-panel"
-              aria-expanded={filePanelOpen}
-              title={filePanelOpen ? t("files.hidePanel") : t("files.showPanel")}
-              style={{
-                position: "absolute", top: 0, right: 0, zIndex: 40,
-                width: 36, height: 32,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "transparent",
-                color: filePanelOpen ? "var(--text)" : "var(--text-muted)",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = filePanelOpen ? "var(--text)" : "var(--text-muted)"; }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="15" y1="3" x2="15" y2="21" />
-              </svg>
-            </button>
-          )}
           <ChatMinimap
             messages={messages}
             streamingMessage={streamState.streamingMessage}
             scrollContainer={scrollContainerRef}
             messageRefs={messageRefs}
             onRevealHistory={revealHistoryForMinimap}
-            topOffset={isTauriDesktop ? 32 : 0}
+            topOffset={0}
           />
           </>
         )}
