@@ -116,7 +116,10 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
 
   // Pointer-based drag: the pressed tab follows the cursor; neighbors slide aside smoothly
   const handleTabPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, session: SessionInfo, index: number) => {
-    if (editingId !== null || confirmDeleteId !== null || session.transient || e.button !== 0) return;
+    if (editingId !== null || confirmDeleteId !== null || e.button !== 0) return;
+    // 只有真正的草稿标签（从未发过消息）禁止拖拽；已转正的会话（含等待模型响应中）允许拖
+    const isTrueDraft = session.transient && session.messageCount === 0 && !session.firstMessage;
+    if (isTrueDraft) return;
     const scrollEl = scrollRef.current;
     if (!scrollEl) return;
     const els = Array.from(scrollEl.querySelectorAll<HTMLElement>("[data-tab-id]"));
