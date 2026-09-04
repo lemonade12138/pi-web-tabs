@@ -1356,6 +1356,7 @@ span.token.table {
   .right-panel-container.right-panel-closed {
     transform: translateX(100%);
     pointer-events: none;
+    box-shadow: none; /* 关闭态整个面板已移出窗口，若保留投影会从右缘渗入一条全高渐变阴影 */
   }
   .right-panel-container > * {
     width: 100%;
@@ -1393,6 +1394,7 @@ span.token.table {
     height: var(--app-viewport-height, 100dvh);
     z-index: 250;
     overflow: hidden;
+    background: var(--bg);
     transition: transform 0.2s ease;
   }
   .right-panel-container.right-panel-open {
