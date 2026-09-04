@@ -28,6 +28,8 @@ fn polish_window_frame(hwnd: isize) {
         DwmSetWindowAttribute(hwnd, 34, &color_none as *const u32, 4); // DWMWA_BORDER_COLOR
         let round: u32 = 2; // DWMWCP_ROUND：窗口矩形本身圆角
         DwmSetWindowAttribute(hwnd, 33, &round as *const u32, 4); // DWMWA_WINDOW_CORNER_PREFERENCE
+        let nc_disabled: u32 = 1; // DWMNCRP_DISABLED：彻底关闭 DWM 非客户区渲染（含系统投影）
+        DwmSetWindowAttribute(hwnd, 2, &nc_disabled as *const u32, 4); // DWMWA_NCRENDERING_POLICY
     }
 }
 
