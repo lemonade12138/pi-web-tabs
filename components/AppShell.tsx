@@ -2063,7 +2063,7 @@ export function AppShell() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} data-tauri-drag-region="" style={{ flexShrink: 0, position: "relative", background: "var(--bg-panel)" }}>
-        <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)", paddingRight: isTauriShell ? "154px" : undefined }}>
+        <div data-tauri-drag-region="" style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)", paddingRight: isTauriShell ? "154px" : undefined }}>
           <button
             onClick={handleSidebarToggle}
              title={sidebarOpen ? translate("sidebar.hide") : translate("sidebar.show")}
@@ -2126,7 +2126,7 @@ export function AppShell() {
                 </button>
               )}
               {!isNarrowMobile && renderChatToolbarActions(true)}
-              {renderSessionStatsButton(true)}
+              {!(isNarrowMobile && mobileToolbarMoreOpen) && renderSessionStatsButton(true)}
               {!isTauriShell && null}
               {isNarrowMobile && mobileToolbarMoreOpen && (
                 <div
@@ -2137,7 +2137,7 @@ export function AppShell() {
                   style={{
                     position: "absolute",
                     top: 0,
-                    right: 0,
+                    right: isTauriShell ? 154 : 0,
                     bottom: 0,
                     left: TOP_BAR_ICON_BUTTON_SIZE,
                     zIndex: 20,
@@ -2146,9 +2146,13 @@ export function AppShell() {
                     background: "color-mix(in srgb, var(--bg-panel) 94%, var(--bg))",
                     boxShadow: "4px 0 18px rgba(0,0,0,0.12)",
                     backdropFilter: "blur(10px)",
+                    overflowX: "auto",
+                    overflowY: "hidden",
+                    scrollbarWidth: "none",
                   }}
                 >
                   {renderChatToolbarActions(true)}
+                  {renderSessionStatsButton(true)}
                 </div>
               )}
             </div>
