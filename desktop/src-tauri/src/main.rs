@@ -14,6 +14,23 @@ use std::time::{Duration, Instant};
 use serde::Deserialize;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
+// 关闭 DWM 系统边框环（透明边缝外围那圈框）+ 显式声明窗口圆角（Win11）
+#[cfg(windows)]
+#[link(name = "dwmapi")]
+extern "system" {
+    fn DwmSetWindowAttribute(hwnd: isize, attr: u32, value: *const u32, size: u32) -> i32;
+}
+
+#[cfg(windows)]
+fn polish_window_frame(hwnd: isize) {
+    unsafe {
+        let color_none: u32 = 0xFFFF_FFFE; // DWMWA_COLOR_NONE：边框全透明
+        DwmSetWindowAttribute(hwnd, 34, &color_none as *const u32, 4); // DWMWA_BORDER_COLOR
+        let round: u32 = 2; // DWMWCP_ROUND：窗口矩形本身圆角
+        DwmSetWindowAttribute(hwnd, 33, &round as *const u32, 4); // DWMWA_WINDOW_CORNER_PREFERENCE
+    }
+}
+
 const PORT: u16 = 30142;
 const APP_URL: &str = "http://127.0.0.1:30142";
 const READY_TIMEOUT_SECS: u64 = 90;
@@ -162,6 +179,14 @@ fn main() {
             .transparent(true)
             .shadow(true)
             .build()?;
+
+            // 去掉系统边框环，让透明边缝真透明
+            #[cfg(windows)]
+            {
+                if let Ok(hwnd) = window.hwnd() {
+                    polish_window_frame(hwnd.0 as isize);
+                }
+            }
 
             // 服务器管理线程
             std::thread::spawn(move || {
