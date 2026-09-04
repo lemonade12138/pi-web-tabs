@@ -2597,7 +2597,7 @@ export function AppShell() {
         </div>
       </div>
       {isTauriShell && (
-            <div style={{ position: "fixed", right: "6px", top: "6px", display: "flex", alignItems: "stretch", height: "36px", zIndex: 300 }}>
+            <div style={{ position: "fixed", right: 0, top: 0, display: "flex", alignItems: "stretch", height: "36px", zIndex: 300 }}>
               <button
                 type="button"
                 onClick={() => { (window as unknown as { __TAURI__: { window: { getCurrentWindow: () => { minimize: () => void } } } }).__TAURI__.window.getCurrentWindow().minimize(); }}

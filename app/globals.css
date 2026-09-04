@@ -356,21 +356,14 @@ pre, code {
   font-family: var(--font-mono);
 }
 
-/* Tauri 桌面壳：透明背景 + 圆角悬浮窗口（Codex 风格） */
+/* Tauri 桌面壳：无留边满铺（圆角由 Win11 系统对窗口本身处理） */
 .tauri-shell,
 .tauri-shell body {
   background: transparent !important;
 }
 .tauri-shell body {
-  padding: 6px;
+  padding: 0;
   box-sizing: border-box;
-}
-.tauri-shell .app-root {
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 60%, rgba(0, 0, 0, 0.35));
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.30);
-  height: calc(100dvh - 12px);
 }
 
 /* react-markdown output styles */
