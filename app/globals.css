@@ -1450,3 +1450,9 @@ span.token.table {
 .session-tab-attention {
   animation: session-tab-attention-glow 1.6s ease-in-out infinite;
 }
+
+/* 标签条横向滚动：隐藏原生滚动条（不挤压标签），由底部细指示条替代 */
+.session-tabs-scroll::-webkit-scrollbar {
+  display: none;
+  height: 0;
+}

@@ -80,12 +80,41 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // 横向滚动指示条：隐藏原生滚动条（它会挤压标签）后，用底部 3px 细条替代，不占布局空间
+  const [hBar, setHBar] = useState<{ show: boolean; x: number; w: number }>({ show: false, x: 0, w: 100 });
+  const updateHBar = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollWidth <= el.clientWidth + 1) {
+      setHBar((prev) => (prev.show ? { ...prev, show: false } : prev));
+      return;
+    }
+    setHBar({
+      show: true,
+      x: (el.scrollLeft / el.scrollWidth) * 100,
+      w: (el.clientWidth / el.scrollWidth) * 100,
+    });
+  }, []);
+
   useEffect(() => {
     if (editingId && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
   }, [editingId]);
+
+  useEffect(() => {
+    updateHBar();
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateHBar);
+    ro.observe(el);
+    window.addEventListener("resize", updateHBar);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateHBar);
+    };
+  }, [updateHBar, sessions.length]);
 
   const startEdit = useCallback((session: SessionInfo) => {
     if (isTrueDraftSession(session)) return;
@@ -203,6 +232,7 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
     <div
       data-custom-drag-region=""
       style={{
+        position: "relative",
         display: "flex",
         alignItems: "center",
         gap: 6,
@@ -259,8 +289,10 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
           overflowX: "auto",
           flex: 1,
           minWidth: 0,
-          scrollbarWidth: "thin",
+          scrollbarWidth: "none",
         }}
+        className="session-tabs-scroll"
+        onScroll={updateHBar}
       >
         {sorted.map((session, index) => {
           const isSelected = session.id === selectedSessionId;
@@ -399,6 +431,7 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
                       minWidth: 0,
                       fontStyle: session.transient && !session.name && !session.firstMessage ? "italic" : undefined,
                       color: session.transient && !session.name && !session.firstMessage ? "var(--text-dim)" : undefined,
+                      textAlign: "center",
                       userSelect: "none",
                     }}
                   >
@@ -495,6 +528,36 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
           );
         })}
       </div>
+      {hBar.show && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            bottom: 2,
+            left: 44,
+            right: 44,
+            height: 3,
+            borderRadius: 99,
+            background: "var(--border)",
+            pointerEvents: "none",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: `${hBar.x}%`,
+              width: `${hBar.w}%`,
+              minWidth: 24,
+              borderRadius: 99,
+              background: "var(--text-dim)",
+              opacity: 0.7,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
