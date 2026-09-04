@@ -36,6 +36,7 @@ import { useIsMobile, useIsNarrowMobile } from "@/hooks/useIsMobile";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useAudio } from "@/hooks/useAudio";
+import { useWindowDrag } from "@/hooks/useWindowDrag";
 import { copyText } from "@/lib/clipboard";
 import { getFileName } from "@/lib/file-paths";
 import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText } from "@/lib/file-fuzzy";
@@ -589,6 +590,7 @@ export function AppShell() {
 
   // 整窗缩放：Ctrl+滚轮调节（所有界面等比缩放），Ctrl+0 复位，localStorage 持久化
   const [isTauriShell, setIsTauriShell] = useState(false);
+  useWindowDrag(isTauriShell);
   useEffect(() => {
     const injected = "__TAURI_INTERNALS__" in window || "__TAURI__" in window;
     setIsTauriShell(injected);
@@ -2084,8 +2086,8 @@ export function AppShell() {
       {/* Center: chat */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {/* Top bar with sidebar toggle */}
-        <div ref={topBarRef} data-tauri-drag-region="" style={{ flexShrink: 0, position: "relative", background: "var(--bg-panel)" }}>
-        <div ref={topBarRowRef} data-tauri-drag-region="" style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)", paddingRight: isTauriShell ? "154px" : undefined }}>
+        <div ref={topBarRef} data-custom-drag-region="" style={{ flexShrink: 0, position: "relative", background: "var(--bg-panel)" }}>
+        <div ref={topBarRowRef} data-custom-drag-region="" style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)", paddingRight: isTauriShell ? "154px" : undefined }}>
           <button
             onClick={handleSidebarToggle}
              title={sidebarOpen ? translate("sidebar.hide") : translate("sidebar.show")}

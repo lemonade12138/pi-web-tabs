@@ -2,9 +2,16 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "remote-piweb",
   "description": "允许 Pi Web 本地页面控制窗口：最小化/最大化/关闭/拖动",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "remote": {
-    "urls": ["http://127.0.0.1:30142/*", "http://localhost:30142/*", "http://127.0.0.1:30142", "http://localhost:30142"]
+    "urls": [
+      "http://127.0.0.1:30142/*",
+      "http://localhost:30142/*",
+      "http://127.0.0.1:30142",
+      "http://localhost:30142"
+    ]
   },
   "permissions": [
     "core:default",
@@ -13,6 +20,8 @@
     "core:window:allow-close",
     "core:window:allow-start-dragging",
     "core:window:allow-is-maximized",
-    "core:webview:allow-set-webview-zoom"
+    "core:webview:allow-set-webview-zoom",
+    "core:window:allow-outer-position",
+    "core:window:allow-set-position"
   ]
 }

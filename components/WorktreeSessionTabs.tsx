@@ -201,7 +201,7 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
 
   return (
     <div
-      data-tauri-drag-region=""
+      data-custom-drag-region=""
       style={{
         display: "flex",
         alignItems: "center",
@@ -251,7 +251,7 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
 
       <div
         ref={scrollRef}
-        data-tauri-drag-region=""
+        data-custom-drag-region=""
         style={{
           display: "flex",
           alignItems: "center",
