@@ -149,6 +149,11 @@ fn read_config_install_dir() -> Option<PathBuf> {
 
 fn looks_like_install(dir: &PathBuf) -> bool {
     dir.join(".next").join("BUILD_ID").is_file()
+        || dir
+            .join(".next-desktop")
+            .join("standalone")
+            .join("server.js")
+            .is_file()
 }
 
 fn find_install_dir() -> Option<PathBuf> {
@@ -234,6 +239,23 @@ fn main() {
         ])
         .setup(|app| {
             let handle = app.handle().clone();
+
+            // 清理遗留的 Service Worker 存储：网页版升级后，旧 SW 会用缓存继续提供
+            // 旧界面（"换了新包还是旧样子"的元凶）。桌面壳的服务永远在本地，
+            // SW 离线缓存有害无益，启动时直接清掉（localStorage 不受影响）。
+            #[cfg(windows)]
+            {
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    let sw_dir = PathBuf::from(local)
+                        .join(app.config().identifier.clone())
+                        .join("EBWebView")
+                        .join("Default")
+                        .join("Service Worker");
+                    if sw_dir.exists() {
+                        let _ = std::fs::remove_dir_all(sw_dir);
+                    }
+                }
+            }
 
             // 创建窗口（先显示启动画面，服务器后台就绪后跳转）
             let window = WebviewWindowBuilder::new(
