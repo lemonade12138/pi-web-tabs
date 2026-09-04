@@ -4,6 +4,7 @@ import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "reac
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vs } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { useFeedbackTimers } from "@/hooks/useFeedbackTimers";
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
 import { copyText } from "@/lib/clipboard";
@@ -117,6 +118,7 @@ export function MermaidBlock({ code, isStreaming, defaultPreview = false }: Merm
 }
 
 function MermaidZoomDialog({ svg, onClose }: { svg: string; onClose: () => void }) {
+  const feedback = useFeedbackTimers();
   const { t } = useI18n();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [zoom, setZoom] = useState(1);

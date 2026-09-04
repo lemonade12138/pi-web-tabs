@@ -346,6 +346,15 @@ export interface SessionInfo {
   transient?: boolean;
 }
 
+/** 真草稿 = 还没发过任何消息的新会话占位（transient 且零消息）。
+ *  新会话首条消息发出后到会话列表刷新前，对象仍带 transient 标记，
+ *  但它已是真实会话，不应被当作草稿禁用重命名/删除/拖拽等功能。 */
+export function isTrueDraftSession(
+  s: Pick<SessionInfo, "transient" | "messageCount" | "firstMessage">,
+): boolean {
+  return Boolean(s.transient) && s.messageCount === 0 && !s.firstMessage;
+}
+
 export interface SessionContext {
   messages: AgentMessage[];
   entryIds: string[]; // parallel to messages — the session entry id for each message

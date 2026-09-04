@@ -4,6 +4,7 @@ import { memo, useState, useRef, useEffect, useMemo } from "react";
 import { MarkdownBody } from "./MarkdownBody";
 import { ImagePreview } from "./ImagePreview";
 import { copyText } from "@/lib/clipboard";
+import { useFeedbackTimers } from "@/hooks/useFeedbackTimers";
 import { useI18n } from "@/hooks/useI18n";
 import { parseCompactionSummary } from "@/lib/compaction-summary";
 import { getAssistantErrorMessage, isEmptyThinkingBlock } from "@/lib/message-display";
@@ -299,6 +300,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
   prevAssistantEntryId?: string;
   onEditContent?: (message: UserMessage) => void;
 }) {
+  const feedback = useFeedbackTimers();
   const { t } = useI18n();
   const [hovered, setHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -362,7 +364,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
   const copyContent = () => {
     copyText(copyTarget).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      feedback(() => setCopied(false), 1500);
     });
   };
 
@@ -596,6 +598,7 @@ function AssistantMessageView({
   entryId?: string;
   writtenFiles?: WrittenFile[];
 }) {
+  const feedback = useFeedbackTimers();
   const { t } = useI18n();
   const time = showTimestamp ? formatTime(message.timestamp) : null;
   const blockItems = useMemo(() => (message.content ?? [])
@@ -665,7 +668,7 @@ function AssistantMessageView({
   const copyContent = () => {
     copyText(textContent).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      feedback(() => setCopied(false), 1500);
     });
   };
 
@@ -1458,6 +1461,7 @@ function CompactionFileList({ title, files }: { title: string; files: string[] }
 }
 
 function CustomMessageView({ message, cwd, onOpenFile }: { message: CustomMessage; cwd?: string; onOpenFile?: (filePath: string) => void }) {
+  const feedback = useFeedbackTimers();
   const { t } = useI18n();
   const isHiddenDisplay = message.display === false;
   const [contentExpanded, setContentExpanded] = useState(!isHiddenDisplay);
@@ -1473,7 +1477,7 @@ function CustomMessageView({ message, cwd, onOpenFile }: { message: CustomMessag
   const copyContent = () => {
     copyText(text || detailsText).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      feedback(() => setCopied(false), 1500);
     });
   };
 

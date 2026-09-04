@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState, useCallback, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
 import type { SessionInfo } from "@/lib/types";
+import { isTrueDraftSession } from "@/lib/types";
 import { listSessionFamilies } from "@/lib/session-family";
 import { loadExplorerOpen, saveExplorerOpen } from "@/lib/file-explorer-state";
 import { dispatchSessionRowContextMenu } from "@/lib/session-row-context-menu";
@@ -1949,10 +1950,10 @@ function SessionItem({
 
   const startRename = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (session.transient) return;
+    if (isTrueDraftSession(session)) return;
     setRenameValue(session.name || displayFirstMessage.slice(0, 50) || session.id.slice(0, 12));
     setRenaming(true);
-  }, [session.name, session.transient, displayFirstMessage, session.id]);
+  }, [session.name, displayFirstMessage, session.id]);
 
   const commitRename = useCallback(async () => {
     const name = renameValue.trim();
@@ -1975,7 +1976,7 @@ function SessionItem({
   }, [renameValue, session.id, session.name, onRenamed, title]);
 
   const performDelete = useCallback(async () => {
-    if (session.transient) return;
+    if (isTrueDraftSession(session)) return;
     setConfirmDelete(false);
     setDeleting(true);
     try {
@@ -1984,7 +1985,7 @@ function SessionItem({
     } catch {
       setDeleting(false);
     }
-  }, [session.id, session.transient, onDeleted]);
+  }, [session.id, onDeleted]);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -2188,7 +2189,7 @@ function SessionItem({
           )}
 
           {/* Action buttons — shown on hover */}
-          {hovered && !session.transient && (
+          {hovered && !isTrueDraftSession(session) && (
             <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
               <button
                 onClick={startRename}

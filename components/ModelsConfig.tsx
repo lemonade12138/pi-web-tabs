@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useFeedbackTimers } from "@/hooks/useFeedbackTimers";
 import { useI18n } from "@/hooks/useI18n";
 import type { ModelCatalogPreset, ModelCatalogRecommendation } from "@/lib/model-catalog";
 import type { DiscoveredModel } from "@/lib/model-discovery";
@@ -1326,12 +1327,18 @@ function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; onRefre
     eventSourceRef.current = es;
 
     es.onmessage = (e) => {
-      const data = JSON.parse(e.data) as {
+      let data: {
         type: string; url?: string; instructions?: string | null;
         token?: string; message?: string; placeholder?: string | null;
         userCode?: string; verificationUri?: string; intervalSeconds?: number | null; expiresInSeconds?: number | null;
         options?: { id: string; label: string }[];
       };
+      try {
+        data = JSON.parse(e.data);
+      } catch {
+        // 中间层/代理可能注入非 JSON 消息，忽略即可，不能中断登录流程
+        return;
+      }
       if (data.type === "auth") {
         setLoginState({ phase: "auth", url: data.url!, instructions: data.instructions ?? null, token: data.token! });
         window.open(data.url!, "_blank", "noopener,noreferrer");
@@ -1553,6 +1560,7 @@ function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; onRefre
 // ── API Key detail ────────────────────────────────────────────────────────────
 
 function ApiKeyDetail({ provider, onRefresh }: { provider: ApiKeyProvider; onRefresh: () => void }) {
+  const feedback = useFeedbackTimers();
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -1826,6 +1834,7 @@ function AddProviderPicker({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ModelsConfig({ onClose, embedded = false }: { onClose: () => void; embedded?: boolean }) {
+  const feedback = useFeedbackTimers();
   const { t } = useI18n();
   const [config, setConfig] = useState<ModelsJson>({ providers: {} });
   const [loading, setLoading] = useState(true);

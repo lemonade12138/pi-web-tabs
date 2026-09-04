@@ -60,7 +60,9 @@ fn http_ok(port: u16) -> bool {
             let mut buf = [0u8; 64];
             let n = s.read(&mut buf).unwrap_or(0);
             let head = String::from_utf8_lossy(&buf[..n]);
-            return head.starts_with("HTTP/1.1 200") || head.starts_with("HTTP/1.0 200");
+            // 接受 2xx/3xx：首页将来加重定向（如登录跳转）也不影响就绪判定
+            let code = head.get(9..12).and_then(|c| c.trim().parse::<u16>().ok()).unwrap_or(0);
+            return (200..400).contains(&code);
         }
     }
     false
@@ -193,15 +195,12 @@ fn main() {
             // 服务器管理线程
             std::thread::spawn(move || {
                 let status = |tip: &str, error: &str| {
-                    let payload = format!(
-                        "{{\"tip\":\"{}\",\"error\":\"{}\"}}",
-                        tip.replace('"', "'"),
-                        error.replace('"', "'")
-                    );
-                    let _ = window.eval(&format!(
-                        "window.dispatchEvent(new CustomEvent('pi-web:desktop-status',{{detail:{});}})",
-                        payload
-                    ));
+                    let payload = serde_json::json!({ "tip": tip, "error": error });
+                    // 纯拼接避免 format! 花括号转义歧义：渲染结果 …{detail:<payload>}))
+                    let js = String::from("window.dispatchEvent(new CustomEvent('pi-web:desktop-status',{detail:")
+                        + payload.to_string().as_str()
+                        + "}))";
+                    let _ = window.eval(&js);
                 };
 
                 let _ = window.eval(
@@ -209,6 +208,17 @@ fn main() {
                 );
 
                 let state: tauri::State<ServerState> = handle.state();
+                if port_open(PORT) {
+                    // 端口有人监听：先确认它是不是能用的 Pi Web 服务器，
+                    // 否则超时后的提示会误导成"构建可能仍在进行"
+                    if !http_ok(PORT) {
+                        std::thread::sleep(Duration::from_millis(1500));
+                    }
+                    if !http_ok(PORT) {
+                        status("", &format!("端口 {} 已被其他程序占用，Pi Web 无法启动。请关闭占用该端口的程序后重开本应用。", PORT));
+                        return;
+                    }
+                }
                 if !port_open(PORT) {
                     match find_install_dir() {
                         Some(dir) => match spawn_server(&dir) {

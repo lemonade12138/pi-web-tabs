@@ -64,6 +64,7 @@ import {
   SIDEBAR_MIN_WIDTH,
 } from "@/lib/panel-layout";
 import type { BlockingExtensionUiRequest, SessionInfo, SessionTreeNode } from "@/lib/types";
+import { isTrueDraftSession } from "@/lib/types";
 import type { ProjectTrustStatus } from "@/lib/api-types";
 import type { ChatInputHandle } from "./ChatInput";
 import type { SessionStatsInfo } from "@/lib/pi-types";
@@ -544,6 +545,25 @@ export function AppShell() {
     };
     window.addEventListener("pi-web:external-file-paths", handler);
     return () => window.removeEventListener("pi-web:external-file-paths", handler);
+  }, [selectedSessionIdForDrop]);
+
+  // 桌面版：启动页期间拖入的文件被暂存在 sessionStorage，会话就绪后在这里补投递一次
+  const pendingDropReplayedRef = useRef(false);
+  useEffect(() => {
+    if (!selectedSessionIdForDrop || pendingDropReplayedRef.current) return;
+    let paths: string[] | null = null;
+    try {
+      const raw = sessionStorage.getItem("pi-web:pending-drop-paths");
+      if (raw) {
+        sessionStorage.removeItem("pi-web:pending-drop-paths");
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) paths = parsed.filter((x): x is string => typeof x === "string");
+      }
+    } catch { /* 损坏值直接丢弃 */ }
+    if (paths && paths.length) {
+      pendingDropReplayedRef.current = true;
+      window.dispatchEvent(new CustomEvent("pi-web:external-file-paths", { detail: { paths } }));
+    }
   }, [selectedSessionIdForDrop]);
 
   // 整窗缩放：Ctrl+滚轮调节（所有界面等比缩放），Ctrl+0 复位，localStorage 持久化
@@ -1497,7 +1517,7 @@ export function AppShell() {
             selectedSession
             && ((sessionStats?.userMessages ?? 0) > 0 || selectedSession.messageCount > 0),
           );
-          const disabled = !selectedSession || selectedSession.transient || !hasMessages || autoNameStatus.kind === "naming";
+          const disabled = !selectedSession || isTrueDraftSession(selectedSession) || !hasMessages || autoNameStatus.kind === "naming";
           const isSuccess = autoNameStatus.kind === "success";
           const isError = autoNameStatus.kind === "error";
           const label = autoNameStatus.kind === "naming"
@@ -1507,7 +1527,7 @@ export function AppShell() {
               : isError
                 ? translate("title.failed")
                 : translate("title.generate");
-          const title = !selectedSession || selectedSession.transient
+          const title = !selectedSession || isTrueDraftSession(selectedSession)
             ? translate("title.unsaved")
             : !hasMessages
               ? translate("title.noMessages")

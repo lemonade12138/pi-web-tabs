@@ -2,6 +2,7 @@
 
 import { memo, useState, useRef, useCallback, useEffect } from "react";
 import type { SessionInfo } from "@/lib/types";
+import { isTrueDraftSession } from "@/lib/types";
 import { skillExpansionToCommand } from "@/lib/slash-display";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -87,7 +88,7 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
   }, [editingId]);
 
   const startEdit = useCallback((session: SessionInfo) => {
-    if (session.transient) return;
+    if (isTrueDraftSession(session)) return;
     setEditValue(getTitle(session));
     setEditingId(session.id);
     setConfirmDeleteId(null);
@@ -381,7 +382,7 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
                       startEdit(session);
                     }}
                     onTouchStart={() => {
-                      if (isConfirming || session.transient) return;
+                      if (isConfirming || isTrueDraftSession(session)) return;
                       const id = session.id;
                       const timer = setTimeout(() => startEdit(session), 500);
                       const cancel = () => clearTimeout(timer);

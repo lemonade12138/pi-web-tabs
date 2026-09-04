@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useFeedbackTimers } from "@/hooks/useFeedbackTimers";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { SubagentProfilesResponse, SubagentSettingsResponse } from "@/lib/api-types";
@@ -147,6 +148,7 @@ export function AgentsConfig({
   onReloaded?: () => void;
   embedded?: boolean;
 }) {
+  const feedback = useFeedbackTimers();
   const isMobile = useIsMobile();
   const { t } = useI18n();
   const [profiles, setProfiles] = useState<SubagentProfile[]>([]);

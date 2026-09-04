@@ -42,6 +42,13 @@
         setTimeout(() => location.replace("http://127.0.0.1:30142"), 400);
       }
     });
+    // 服务器未就绪时拖入的文件：暂存到 sessionStorage，应用加载后补投递
+    window.addEventListener("pi-web:external-file-paths", (e) => {
+      try {
+        const paths = (e.detail && e.detail.paths) || [];
+        if (paths.length) sessionStorage.setItem("pi-web:pending-drop-paths", JSON.stringify(paths));
+      } catch (_) { /* 隐私模式等场景下静默降级 */ }
+    });
   </script>
 </body>
 </html>
