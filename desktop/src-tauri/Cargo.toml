@@ -1,6 +1,6 @@
 [package]
 name = "piweb-desktop"
-version = "1.1.0"
+version = "1.2.0"
 description = "Pi Web 桌面版"
 edition = "2021"
 

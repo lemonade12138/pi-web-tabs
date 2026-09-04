@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-close-external-preview"
+description = "Enables the close_external_preview command without any pre-configured scope."
+commands.allow = ["close_external_preview"]
+
+[[permission]]
+identifier = "deny-close-external-preview"
+description = "Denies the close_external_preview command without any pre-configured scope."
+commands.deny = ["close_external_preview"]

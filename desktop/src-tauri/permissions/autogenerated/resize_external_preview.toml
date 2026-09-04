@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-resize-external-preview"
+description = "Enables the resize_external_preview command without any pre-configured scope."
+commands.allow = ["resize_external_preview"]
+
+[[permission]]
+identifier = "deny-resize-external-preview"
+description = "Denies the resize_external_preview command without any pre-configured scope."
+commands.deny = ["resize_external_preview"]
