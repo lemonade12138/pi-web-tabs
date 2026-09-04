@@ -181,13 +181,37 @@ export function AppShell() {
       return next;
     });
   }, [sessionCatalog]);
+  const clearSelection = useCallback((cwd: string | null) => {
+    const draftId = typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    setNewSessionDraftId(draftId);
+    activeNewSessionDraftKeyRef.current = cwd ? `new:${draftId}:${cwd}` : null;
+    setSelectedSession(null);
+    setNewSessionCwd(cwd ?? null);
+    setSessionKey((k) => k + 1);
+    setBranchTree([]);
+    setBranchActiveLeafId(null);
+    setSystemPrompt(null);
+    setSystemTools(null);
+    setSystemInfoLoading(false);
+    setActiveTopPanel(null);
+    router.replace("/", { scroll: false });
+  }, [router]);
+
   const closeTab = useCallback((sessionId: string) => {
     setOpenTabIds((prev) => {
       const next = (prev ?? []).filter((id) => id !== sessionId);
       persistOpenTabIds(next);
       return next;
     });
-  }, []);
+    // 关的是当前选中的会话：不同步退出的话，recentSessions 的保底逻辑会
+    // 把它当“选中但未钉标签”强制插回列表第一个（“弹到第一个”），直到切换
+    // 会话才消失。这里同步清空选中（会话文件保留在侧栏，可重新打开）。
+    if (selectedSession?.id === sessionId) {
+      clearSelection(selectedSession.cwd);
+    }
+  }, [selectedSession, clearSelection]);
   // hydrate open tabs after mount (localStorage is client-only; avoids hydration mismatch)
   useEffect(() => { setOpenTabIds(loadOpenTabIds()); }, []);
   const handleSessionsChange = useCallback((sessions: SessionInfo[]) => {
@@ -1087,24 +1111,9 @@ export function AppShell() {
     invalidateWorkspaceRestore();
     setRefreshKey((k) => k + 1);
     if (selectedSession?.id === sessionId) {
-      const cwd = selectedSession.cwd;
-      const draftId = typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-      setNewSessionDraftId(draftId);
-      activeNewSessionDraftKeyRef.current = cwd ? `new:${draftId}:${cwd}` : null;
-      setSelectedSession(null);
-      setNewSessionCwd(cwd ?? null);
-      setSessionKey((k) => k + 1);
-      setBranchTree([]);
-      setBranchActiveLeafId(null);
-      setSystemPrompt(null);
-      setSystemTools(null);
-      setSystemInfoLoading(false);
-      setActiveTopPanel(null);
-      router.replace("/", { scroll: false });
+      clearSelection(selectedSession.cwd);
     }
-  }, [invalidateWorkspaceRestore, selectedSession, router]);
+  }, [invalidateWorkspaceRestore, selectedSession, clearSelection]);
 
   const handleTabCreate = useCallback(() => {
     if (!activeCwd) return;
