@@ -94,6 +94,27 @@ export function AppShell() {
   const { locale, setLocale, t: translate, supportedLocales } = useI18n();
   const isMobile = useIsMobile();
   const isNarrowMobile = useIsNarrowMobile();
+  // 顶栏按钮装不下时自动收进 ··· 菜单：按顶栏实际可用宽度判断，而非窗口宽度
+  // （侧栏展开 / 整窗放大都会让顶栏变窄，仅看 innerWidth 会误判）
+  const topBarRowRef = useRef<HTMLDivElement | null>(null);
+  const barMeasureRef = useRef<HTMLDivElement | null>(null);
+  const [topBarOverflow, setTopBarOverflow] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const row = topBarRowRef.current;
+      const m = barMeasureRef.current;
+      if (!row || !m) { setTopBarOverflow(false); return; }
+      const reserve = (isTauriShell ? 154 : 0) + TOP_BAR_ICON_BUTTON_SIZE * 2 + 12;
+      const overflow = m.offsetWidth > row.clientWidth - reserve;
+      setTopBarOverflow((prev) => (prev === overflow ? prev : overflow));
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    if (topBarRowRef.current) ro.observe(topBarRowRef.current);
+    if (barMeasureRef.current) ro.observe(barMeasureRef.current);
+    window.addEventListener("resize", check);
+    return () => { ro.disconnect(); window.removeEventListener("resize", check); };
+  });
   useViewportHeight();
 
   // Once the user has granted notification permission, register a Web Push
@@ -2063,7 +2084,7 @@ export function AppShell() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} data-tauri-drag-region="" style={{ flexShrink: 0, position: "relative", background: "var(--bg-panel)" }}>
-        <div data-tauri-drag-region="" style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)", paddingRight: isTauriShell ? "154px" : undefined }}>
+        <div ref={topBarRowRef} data-tauri-drag-region="" style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)", paddingRight: isTauriShell ? "154px" : undefined }}>
           <button
             onClick={handleSidebarToggle}
              title={sidebarOpen ? translate("sidebar.hide") : translate("sidebar.show")}
@@ -2094,7 +2115,7 @@ export function AppShell() {
                 height: "100%",
               }}
             >
-              {isNarrowMobile && (
+              {(isNarrowMobile || topBarOverflow) && (
                 <button
                   type="button"
                   onClick={handleMobileToolbarMoreToggle}
@@ -2125,10 +2146,10 @@ export function AppShell() {
                   )}
                 </button>
               )}
-              {!isNarrowMobile && renderChatToolbarActions(true)}
-              {!(isNarrowMobile && mobileToolbarMoreOpen) && renderSessionStatsButton(true)}
+              {!(isNarrowMobile || topBarOverflow) && renderChatToolbarActions(true)}
+              {!(isNarrowMobile || topBarOverflow) && renderSessionStatsButton(true)}
               {!isTauriShell && null}
-              {isNarrowMobile && mobileToolbarMoreOpen && (
+              {(isNarrowMobile || topBarOverflow) && mobileToolbarMoreOpen && (
                 <div
                   id="mobile-toolbar-actions"
                   role="toolbar"
@@ -2157,7 +2178,62 @@ export function AppShell() {
               )}
             </div>
           )}
-          {!isMobile && (
+          {!isMobile && topBarOverflow && (
+            <div
+              ref={mobileToolbarRef}
+              style={{ position: "relative", display: "flex", alignItems: "stretch", height: "100%", flexShrink: 0 }}
+            >
+              <button
+                type="button"
+                onClick={handleMobileToolbarMoreToggle}
+                title={mobileToolbarMoreOpen ? translate("chat.close") : translate("chat.moreControls")}
+                aria-label={mobileToolbarMoreOpen ? translate("chat.close") : translate("chat.moreControls")}
+                aria-expanded={mobileToolbarMoreOpen}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: TOP_BAR_ICON_BUTTON_SIZE, height: "100%", padding: 0,
+                  background: mobileToolbarMoreOpen ? "var(--bg-selected)" : "none",
+                  border: "none", borderRight: "1px solid var(--border)",
+                  color: mobileToolbarMoreOpen ? "var(--text)" : "var(--text-muted)",
+                  cursor: "pointer", flexShrink: 0, transition: "color 0.12s, background 0.12s",
+                }}
+              >
+                {mobileToolbarMoreOpen ? (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" />
+                  </svg>
+                ) : (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+                  </svg>
+                )}
+              </button>
+              {mobileToolbarMoreOpen && (
+                <div
+                  id="desktop-toolbar-actions"
+                  role="toolbar"
+                  aria-label={translate("chat.moreControls")}
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    zIndex: 220,
+                    display: "flex",
+                    alignItems: "stretch",
+                    background: "var(--bg-panel)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    boxShadow: "0 10px 28px rgba(0,0,0,0.14)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {renderChatToolbarActions(false)}
+                  {renderSessionStatsButton(false)}
+                </div>
+              )}
+            </div>
+          )}
+          {!isMobile && !topBarOverflow && (
             <>
               {renderThemeButton(false)}
               {renderLanguageButton(false)}
@@ -2165,6 +2241,23 @@ export function AppShell() {
               {renderChatToolbarActions(false)}
               {renderSessionStatsButton(false)}
             </>
+          )}
+          {!isMobile && (
+            <div
+              ref={barMeasureRef}
+              aria-hidden="true"
+              style={{
+                position: "absolute", top: 0, left: 0,
+                visibility: "hidden", pointerEvents: "none",
+                display: "flex", alignItems: "center", height: "100%", whiteSpace: "nowrap",
+              }}
+            >
+              {renderThemeButton(false)}
+              {renderLanguageButton(false)}
+              {renderProjectTrustWarning(false)}
+              {renderChatToolbarActions(false)}
+              {renderSessionStatsButton(false)}
+            </div>
           )}
           {isMobile && sessionHasBranches && (
             <BranchNavigator
