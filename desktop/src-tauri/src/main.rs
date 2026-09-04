@@ -439,12 +439,33 @@ fn main() {
                 ensure_no_ghost_frame(window);
             }
             // 拖拽真路径：Tauri 原生拿到完整路径，转事件给网页
-            if let WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
-                if let (Some(webview), Ok(json)) = (window.get_webview_window("main"), serde_json::to_string(&paths)) {
-                    let _ = webview.eval(&format!(
-                        "window.dispatchEvent(new CustomEvent('pi-web:external-file-paths',{{detail:{{paths:{} }}}}))",
-                        json
-                    ));
+            // 注意：拖拽回调里不能同步 eval（会死锁 OLE 拖拽循环）——一律起线程延迟派发
+            if let WindowEvent::DragDrop(dde) = event {
+                let main = window.get_webview_window("main");
+                let (kind, n) = match dde {
+                    tauri::DragDropEvent::Enter { .. } => ("enter", 0usize),
+                    tauri::DragDropEvent::Over { .. } => ("over", 0),
+                    tauri::DragDropEvent::Drop { paths, .. } => ("drop", paths.len()),
+                    tauri::DragDropEvent::Leave => ("leave", 0),
+                    _ => ("other", 0),
+                };
+                if let Some(webview) = main.clone() {
+                    std::thread::spawn(move || {
+                        let _ = webview.eval(&format!(
+                            "window.dispatchEvent(new CustomEvent('pi-web:dd-debug',{{detail:{{kind:'{}',n:{}}}}}))",
+                            kind, n
+                        ));
+                    });
+                }
+                if let tauri::DragDropEvent::Drop { paths, .. } = dde {
+                    if let (Some(webview), Ok(json)) = (main, serde_json::to_string(&paths)) {
+                        std::thread::spawn(move || {
+                            let _ = webview.eval(&format!(
+                                "window.dispatchEvent(new CustomEvent('pi-web:external-file-paths',{{detail:{{paths:{} }}}}))",
+                                json
+                            ));
+                        });
+                    }
                 }
             }
         })
