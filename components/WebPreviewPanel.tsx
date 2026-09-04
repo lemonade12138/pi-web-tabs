@@ -56,9 +56,15 @@ export function WebPreviewPanel({ url, onClose }: Props) {
     const ro = new ResizeObserver(sync);
     if (contentRef.current) ro.observe(contentRef.current);
     window.addEventListener("resize", sync);
+    // 引擎缩放（Ctrl+滚轮）会改变 dpr，物理坐标要整体重算；等布局稳定后再同步
+    const onZoom = () => {
+      window.setTimeout(sync, 250);
+    };
+    window.addEventListener("pi-web:zoom-changed", onZoom);
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", sync);
+      window.removeEventListener("pi-web:zoom-changed", onZoom);
     };
   }, [url]);
 

@@ -631,6 +631,8 @@ export function AppShell() {
       try {
         const tauri = (window as unknown as { __TAURI__: { webview: { getCurrentWebview: () => { setZoom: (f: number) => Promise<void> } } } }).__TAURI__;
         void tauri.webview.getCurrentWebview().setZoom(z).catch(() => {});
+        // 通知外部网页预览等缩放相关组件重算坐标（setZoom 改变 dpr，物理坐标要重算）
+        window.setTimeout(() => window.dispatchEvent(new Event("pi-web:zoom-changed")), 0);
       } catch {}
     };
     let zoom = 1;
@@ -2733,6 +2735,7 @@ export function AppShell() {
       >
         {/* Right panel tab bar */}
         <div style={{
+          position: "relative",
           display: "flex",
           alignItems: "center",
           flexShrink: 0,
@@ -2751,52 +2754,64 @@ export function AppShell() {
             />
           </div>
           {isTauriShell && !webPreviewUrl && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, paddingRight: 4 }}>
-              {webInputOpen ? (
-                <>
-                  <input
-                    autoFocus
-                    value={webUrlDraft}
-                    onChange={(e) => setWebUrlDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") openWebPreview();
-                      if (e.key === "Escape") setWebInputOpen(false);
-                    }}
-                    placeholder="输入网址，回车在右侧打开"
-                    style={{ width: 170, fontSize: 11, padding: "3px 8px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)", color: "var(--text)", outline: "none" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={openWebPreview}
-                    title="打开网页"
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, background: "none", border: "none", borderRadius: 4, color: "#4ade80", cursor: "pointer", flexShrink: 0 }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setWebInputOpen(false)}
-                    title="取消"
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, background: "none", border: "none", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => { setWebUrlDraft(""); setWebInputOpen(true); }}
-                  title="在右侧用真实浏览器打开网页"
-                  aria-label="在右侧用真实浏览器打开网页"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, padding: 0, background: "none", border: "none", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M3 12h18" />
-                    <path d="M12 3a15 15 0 0 1 4 9 15 15 0 0 1-4 9 15 15 0 0 1-4-9 15 15 0 0 1 4-9z" />
-                  </svg>
-                </button>
-              )}
+            <button
+              type="button"
+              onClick={() => { setWebUrlDraft(""); setWebInputOpen((v) => !v); }}
+              title="在右侧用真实浏览器打开网页"
+              aria-label="在右侧用真实浏览器打开网页"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, marginLeft: 4, padding: 0, background: webInputOpen ? "var(--bg-selected)" : "none", border: "none", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18" />
+                <path d="M12 3a15 15 0 0 1 4 9 15 15 0 0 1-4 9 15 15 0 0 1-4-9 15 15 0 0 1 4-9z" />
+              </svg>
+            </button>
+          )}
+          {isTauriShell && !webPreviewUrl && webInputOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                right: isTauriShell ? 130 : 8,
+                zIndex: 220,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--bg-panel)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: "6px 8px",
+                boxShadow: "0 10px 26px rgba(0,0,0,0.18)",
+              }}
+            >
+              <input
+                autoFocus
+                value={webUrlDraft}
+                onChange={(e) => setWebUrlDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") openWebPreview();
+                  if (e.key === "Escape") setWebInputOpen(false);
+                }}
+                placeholder="输入网址，回车在右侧打开"
+                style={{ width: 200, fontSize: 12, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)", color: "var(--text)", outline: "none" }}
+              />
+              <button
+                type="button"
+                onClick={openWebPreview}
+                title="打开网页"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, background: "none", border: "none", borderRadius: 4, color: "#4ade80", cursor: "pointer", flexShrink: 0 }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWebInputOpen(false)}
+                title="取消"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, background: "none", border: "none", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></svg>
+              </button>
             </div>
           )}
                   </div>
