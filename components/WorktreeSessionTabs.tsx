@@ -81,21 +81,6 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 横向滚动指示条：隐藏原生滚动条（它会挤压标签）后，用底部 3px 细条替代，不占布局空间
-  const [hBar, setHBar] = useState<{ show: boolean; x: number; w: number }>({ show: false, x: 0, w: 100 });
-  const updateHBar = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    if (el.scrollWidth <= el.clientWidth + 1) {
-      setHBar((prev) => (prev.show ? { ...prev, show: false } : prev));
-      return;
-    }
-    setHBar({
-      show: true,
-      x: (el.scrollLeft / el.scrollWidth) * 100,
-      w: (el.clientWidth / el.scrollWidth) * 100,
-    });
-  }, []);
-
   useEffect(() => {
     if (editingId && inputRef.current) {
       inputRef.current.focus();
@@ -103,18 +88,18 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
     }
   }, [editingId]);
 
+  // 鼠标滚轮横滚标签条：向下=向右，向上=向左（触控板横滑走原生横向滚动）
   useEffect(() => {
-    updateHBar();
     const el = scrollRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(updateHBar);
-    ro.observe(el);
-    window.addEventListener("resize", updateHBar);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", updateHBar);
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
     };
-  }, [updateHBar, sessions.length]);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   const startEdit = useCallback((session: SessionInfo) => {
     if (isTrueDraftSession(session)) return;
@@ -290,7 +275,6 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
           scrollbarWidth: "none",
         }}
         className="session-tabs-scroll"
-        onScroll={updateHBar}
       >
         {sorted.map((session, index) => {
           const isSelected = session.id === selectedSessionId;
@@ -526,36 +510,6 @@ function WorktreeSessionTabsImpl({ sessions, selectedSessionId, onSelect, onCrea
           );
         })}
       </div>
-      {hBar.show && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            bottom: 2,
-            left: 44,
-            right: 44,
-            height: 3,
-            borderRadius: 99,
-            background: "var(--border)",
-            pointerEvents: "none",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: `${hBar.x}%`,
-              width: `${hBar.w}%`,
-              minWidth: 24,
-              borderRadius: 99,
-              background: "var(--text-dim)",
-              opacity: 0.7,
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }
