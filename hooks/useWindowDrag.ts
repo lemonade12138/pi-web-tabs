@@ -38,7 +38,7 @@ export function useWindowDrag(enabled: boolean) {
 
     const isInteractive = (el: Element | null): boolean =>
       !!el?.closest(
-        'button, a, input, textarea, select, [contenteditable], [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], [data-no-drag], label',
+        'button, a, input, textarea, select, [contenteditable], [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], [data-no-drag], label, [data-tab-id]',
       );
 
     const onPointerDown = (event: PointerEvent) => {
