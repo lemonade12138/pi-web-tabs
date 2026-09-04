@@ -554,7 +554,7 @@ export function AppShell() {
     document.documentElement.classList.toggle("tauri-shell", injected);
     if (!injected) return; // 浏览器：用 Firefox/Edge 自带的 Ctrl+滚轮缩放，坐标天然正确
     const apply = (next: number) => {
-      const z = Math.min(5, Math.max(0.5, next));
+      const z = Math.min(10, Math.max(0.5, next));
       try { window.localStorage.setItem("pi-web:app-zoom", String(z)); } catch {}
       try {
         const tauri = (window as unknown as { __TAURI__: { webview: { getCurrentWebview: () => { setZoom: (f: number) => Promise<void> } } } }).__TAURI__;
