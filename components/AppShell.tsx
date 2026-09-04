@@ -96,6 +96,10 @@ export function AppShell() {
   const { locale, setLocale, t: translate, supportedLocales } = useI18n();
   const isMobile = useIsMobile();
   const isNarrowMobile = useIsNarrowMobile();
+  // 窄窗口断点切换（右侧面板在嵌入/全屏覆盖间切换）时，通知网页预览重算坐标
+  useEffect(() => {
+    window.dispatchEvent(new Event("pi-web:panel-layout-changed"));
+  }, [isMobile]);
   // 顶栏按钮装不下时自动收进 ··· 菜单：按顶栏实际可用宽度判断，而非窗口宽度
   // （侧栏展开 / 整窗放大都会让顶栏变窄，仅看 innerWidth 会误判）
   const topBarRowRef = useRef<HTMLDivElement | null>(null);
@@ -491,6 +495,9 @@ export function AppShell() {
       setMobileToolbarMoreOpen(false);
     }
     setRightPanelOpen((open) => !open);
+    // 通知网页预览：面板开/关改变内容区位置（ResizeObserver 只报尺寸不报位置，
+    // 收起面板时子 webview 需跟随移到屏幕外，展开时再回来）
+    window.setTimeout(() => window.dispatchEvent(new Event("pi-web:panel-layout-changed")), 0);
   }, [isMobile]);
 
   useEffect(() => {

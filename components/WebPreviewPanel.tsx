@@ -18,6 +18,10 @@ interface Props {
 /**
  * 右侧面板内的真实浏览器预览（Tauri 多 webview）：
  * 在主窗口里叠第二个 WebView2 渲染外部网址，位置/尺寸跟随右侧面板内容区。
+ *
+ * 对齐策略：不用一堆事件（resize/缩放/面板开关/断点切换），改用 rAF 每帧轮询
+ * 对比物理 bounds，变了就同步。任何导致面板位置/尺寸/缩放变化的操作下一帧必然
+ * 被捕获——全屏/非全屏/窄窗/缩放/收放面板都不会脱位。
  */
 export function WebPreviewPanel({ url, onClose }: Props) {
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -42,30 +46,30 @@ export function WebPreviewPanel({ url, onClose }: Props) {
     const b = bounds();
     if (!b) return;
     void invoke("open_external_preview", { url, ...b });
+    return () => {
+      // 组件卸载（关闭预览/清空URL/切走）时销毁预览 webview，避免残影覆盖
+      void invoke("close_external_preview");
+    };
   }, [url]);
 
-  // 尺寸同步：面板宽窄、窗口缩放、缩放级别变化时实时对齐
+  // 每帧对齐：物理 bounds 变化就同步（覆盖窗口拖动/resize/缩放/面板开关/断点切换）
   useEffect(() => {
     const invoke = tauriInvoke();
     if (!invoke) return;
-    const sync = () => {
+    let raf = 0;
+    let lastKey = "";
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
       const b = bounds();
-      if (b) void invoke("resize_external_preview", b);
+      if (!b) return;
+      const key = `${b.x},${b.y},${b.w},${b.h}`;
+      if (key !== lastKey) {
+        lastKey = key;
+        void invoke("resize_external_preview", b);
+      }
     };
-    sync();
-    const ro = new ResizeObserver(sync);
-    if (contentRef.current) ro.observe(contentRef.current);
-    window.addEventListener("resize", sync);
-    // 引擎缩放（Ctrl+滚轮）会改变 dpr，物理坐标要整体重算；等布局稳定后再同步
-    const onZoom = () => {
-      window.setTimeout(sync, 250);
-    };
-    window.addEventListener("pi-web:zoom-changed", onZoom);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", sync);
-      window.removeEventListener("pi-web:zoom-changed", onZoom);
-    };
+    loop();
+    return () => cancelAnimationFrame(raf);
   }, [url]);
 
   const close = () => {
