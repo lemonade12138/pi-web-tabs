@@ -985,6 +985,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
             scrollContainer={scrollContainerRef}
             messageRefs={messageRefs}
             onRevealHistory={revealHistoryForMinimap}
+            topOffset={isTauriDesktop ? 32 : 0}
           />
           </>
         )}

@@ -232,7 +232,8 @@ export function ChatMinimap({
   scrollContainer,
   messageRefs,
   onRevealHistory,
-}: Props) {
+  topOffset = 0,
+}: Props & { topOffset?: number }) {
   const [visible, setVisible] = useState(false);
   const [allNodes, setAllNodes] = useState<NodeInfo[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -601,14 +602,8 @@ export function ChatMinimap({
   return (
     <div
       ref={containerRef}
-      onMouseDown={handleMouseDown}
-      onMouseEnter={showPreview}
-      onMouseLeave={schedulePreviewHide}
-      onMouseMove={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        setMouseYRatio((event.clientY - rect.top) / rect.height);
-      }}
       style={{
+        marginTop: topOffset,
         width: MINIMAP_WIDTH,
         flexShrink: 0,
         position: "relative",
@@ -616,6 +611,13 @@ export function ChatMinimap({
         userSelect: "none",
         background: "transparent",
         overflow: "visible",
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={showPreview}
+      onMouseLeave={schedulePreviewHide}
+      onMouseMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setMouseYRatio((event.clientY - rect.top) / rect.height);
       }}
     >
       <div
