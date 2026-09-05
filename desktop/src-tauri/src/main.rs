@@ -113,6 +113,41 @@ fn polish_window_frame(hwnd: isize) {
     }
 }
 
+// 无装饰窗失焦防护：Windows 在 WM_NCACTIVATE(FALSE) 时会重绘非客户区，把系统标题栏画回来。
+// 标配处理：失焦分支以 lParam=-1 调 DefWindowProc，禁止非客户区重绘。
+#[cfg(windows)]
+mod frame_fix {
+    use std::sync::OnceLock;
+    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        CallWindowProcW, GetWindowLongPtrW, SetWindowLongPtrW, GWLP_WNDPROC,
+    };
+
+    const WM_NCACTIVATE: u32 = 0x0086;
+    static ORIG: OnceLock<usize> = OnceLock::new();
+    type RawProc = unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT;
+
+    unsafe extern "system" fn hooked(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
+        let Some(orig) = ORIG.get() else { return LRESULT(0); };
+        let proc: RawProc = std::mem::transmute(*orig);
+        if msg == WM_NCACTIVATE && wp.0 == 0 {
+            // 失焦：禁止非客户区重绘（防止系统框冒出来）
+            return CallWindowProcW(Some(proc), hwnd, msg, wp, LPARAM(-1));
+        }
+        CallWindowProcW(Some(proc), hwnd, msg, wp, lp)
+    }
+
+    pub fn install(hwnd_isize: isize) {
+        unsafe {
+            let hwnd = HWND(hwnd_isize as _);
+            let orig = GetWindowLongPtrW(hwnd, GWLP_WNDPROC);
+            if ORIG.set(orig as usize).is_ok() {
+                SetWindowLongPtrW(hwnd, GWLP_WNDPROC, hooked as usize as isize);
+            }
+        }
+    }
+}
+
 const PORT: u16 = 30142;
 const APP_URL: &str = "http://127.0.0.1:30142";
 const READY_TIMEOUT_SECS: u64 = 90;
@@ -360,6 +395,7 @@ fn main() {
             {
                 if let Ok(hwnd) = window.hwnd() {
                     polish_window_frame(hwnd.0 as isize);
+                    frame_fix::install(hwnd.0 as isize);
                     // 自装文件拖拽：在内层 WebView2 窗口上注册自己的拖拽目标
                     let root = hwnd.0 as isize;
                     let w_event = window.clone();
@@ -462,7 +498,7 @@ fn main() {
         .on_window_event(|window, event| {
             // 幽灵系统框自愈：还原/贴靠等过渡后 Windows 可能把标题栏画回来
             #[cfg(windows)]
-            if matches!(event, WindowEvent::Focused(true) | WindowEvent::Resized(_)) {
+            if matches!(event, WindowEvent::Focused(_) | WindowEvent::Resized(_)) {
                 ensure_no_ghost_frame(window);
             }
             // 拖拽真路径：Tauri 原生拿到完整路径，转事件给网页
