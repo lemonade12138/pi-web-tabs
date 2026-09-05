@@ -83,6 +83,7 @@ fn ghost_frame_present(hwnd: isize) -> bool {
 fn ensure_no_ghost_frame(window: &tauri::Window) {
     if let Ok(hwnd) = window.hwnd() {
         let h = hwnd.0 as isize;
+        frame_fix::strip_caption(h);
         if ghost_frame_present(h) {
             let _ = window.set_decorations(false);
             polish_window_frame(h);
@@ -143,6 +144,34 @@ mod frame_fix {
             let orig = GetWindowLongPtrW(hwnd, GWLP_WNDPROC);
             if ORIG.set(orig as usize).is_ok() {
                 SetWindowLongPtrW(hwnd, GWLP_WNDPROC, hooked as usize as isize);
+            }
+            strip_caption(hwnd_isize);
+        }
+    }
+
+    // 彻底剥掉 WS_CAPTION 样式位：tao 无装饰窗仍保留该位（供动画用），
+    // 但 DWM 在失焦重绘时会据此画出系统标题栏（幽灵框根源）。
+    // set_decorations 等操作会让 tao 把样式位加回来，所以每次焦点/尺寸事件都要重剥。
+    pub fn strip_caption(hwnd_isize: isize) {
+        use windows::Win32::UI::WindowsAndMessaging::{
+            GetWindowLongW, SetWindowLongW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+            SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION,
+        };
+        unsafe {
+            let hwnd = HWND(hwnd_isize as _);
+            let style = GetWindowLongW(hwnd, GWL_STYLE);
+            let clean = style & !(WS_CAPTION.0 as i32);
+            if clean != style {
+                SetWindowLongW(hwnd, GWL_STYLE, clean);
+                let _ = SetWindowPos(
+                    hwnd,
+                    None,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+                );
             }
         }
     }
